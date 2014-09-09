@@ -1,8 +1,19 @@
 #!/usr/bin/env python
 #coding:utf-8
+import sys
+import getpass
+user_file='account.txt'
+lock_file='account_lock.txt'
+with open(user_file) as f:
+    user_list=f.readlines()
+with open(lock_file) as f:
+    lock_list=[]
+    for line in f.readlines():
+        line=line.strip('\n')
+        lock_list.append(line)
 def choose():
     notice="""
-              Welcome to ATM SYSTEM
+                欢迎使用招商信用卡系统
                    0:快捷取现
                    1:信用卡商城
                    2:查询剩余额度
@@ -13,15 +24,14 @@ def choose():
     while True:
         print notice
         while True:
-          choose=raw_input('Please choose a number:').strip()
+          choose=raw_input('请选择功能并输入对应数字:').strip()
           if len(choose) == 0:
               print '请输入正确数字'
               continue
           else:
               break
-        print '您输入的数字是\033[032;1m%s\033[0m'%choose
         if choose not in ['0','1','2','3','4','5']:
-            print 'Please input a correct number!'
+            print '请输入正确数字！'
             continue
         else:
             if int(choose) == 0:
@@ -43,16 +53,12 @@ def cash(username):
     #print '您能最多取现%s元'%(float(edu)/1.01)
     buydate = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
     while True:
-        jiner=raw_input('How much money do you want to draw:').strip()
-        if len(jiner) == 0:continue
-        if float(edu) < float(jiner):
-            print '超过额度余额！'
-            continue
-        else:
+        jiner=raw_input('请输入取现金额:').strip()
+        if jiner.isdigit() is  True and len(jiner) !=0 and int(jiner) > 0 and float(edu)>float(jiner):
             shouxufei=float(jiner)*0.01
             benxi=float(jiner) +float(shouxufei)
-            #if float(edu) >= float(benxi):
             shengyu=float(edu) - float(benxi)
+            print '本次取现金额为\033[32;1m%s\033[0m元，手续费为\033[32;1m%s\033[0m元'%(jiner,shouxufei)
             loger(username,buydate,'取现',float(jiner),shouxufei,benxi,shengyu)
             if float(shengyu) < 0:
                 shengyu=0
@@ -61,12 +67,14 @@ def cash(username):
             else:
                 eduupdate(username,shengyu)
                 break
+        else:
+            print '请输入大于零的\033[31;1m 数字\033[0m！'
     #else:
     #    print '超过额度余额！'
 def buy(username):
     import time
-    print 'Welcome %s to our Credit Card Mall!!'%username
-    print 'You can buy follow shops!!'
+    print '尊敬的%s用户,欢迎进入招商信用卡商城!!'%username
+    print '您可购买以下产品!!'
     edu = eduload(username)
     shop=['car','iphone','meizu','drinks','books','notepad']
     jiage=[500000,4999,2000,100,55.55,3000]
@@ -76,7 +84,7 @@ def buy(username):
        print shop[i],jiage[i]
     shengyu=edu
     while True:
-        want_to_buy=raw_input('what do you want to buy--->').strip()
+        want_to_buy=raw_input('请输入商品名称:').strip()
         if want_to_buy == 'quit':
             print shoplist
             break
@@ -84,7 +92,8 @@ def buy(username):
             jiner = jiage[shop.index(want_to_buy)]
             if float(shengyu) >= float(jiner):
                 shengyu=float(shengyu) - float(jiner)
-                print 'you have %s kuai now'%shengyu
+                #print 'you have %s kuai now'%shengyu
+                print '成功将%s加入购物车！'%want_to_buy
                 shoplist.append(want_to_buy)
                 buydate = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
                 shouxufei=0
@@ -92,14 +101,13 @@ def buy(username):
                 loger(username,buydate,'消费:%s'%want_to_buy,float(jiner),shouxufei,benxi,shengyu)
                 eduupdate(username,shengyu)
             else:
-                print 'you are too poor to buy it!!'
+                print '您的余额无法支付此商品!!'
                 continue
         else:
-            print "dont in list,input again!"
+            print "不在商品栏中，请重新输入!"
 def left_amount():
-    print 'left_amount'
     edu = eduload(username)
-    print '您额度目前为%s元'%(edu)
+    print '您额度目前为\033[32;1m%s\033[0m元'%(edu)
 def account_list(username):
     from prettytable import PrettyTable
     import time
@@ -109,7 +117,7 @@ def account_list(username):
        time1=time.time()
        a = PrettyTable(['序号','账户', '消费日期', '消费类型(产品)', '消费金额', '手续费','应还金额'])
        zonge=[ ]
-       for line in f.readlines():
+       for line in f.xreadlines():
           line = line.split()
           if line[0]== username:
             count += 1
@@ -120,26 +128,33 @@ def account_list(username):
             if count == 0:
                print '没有找到消费记录'
             else:
-               time2=time.time()
-               cost_time=time2 - time1
+               #time2=time.time()
+               #cost_time=time2 - time1
                zonge=sum(zonge)
                a.add_row(['','','','','','共计(单位：元)：',zonge])
                today = time.strftime('%d',time.localtime(time.time()))
                huankuanri=30-int(today)
                print a
                print '距离还款日还有\033[31;1m%s\033[0m天'%huankuanri
+               time2=time.time()
+               cost_time=time2 - time1
                print '总共找到\033[032;1m%s\033[0m条记录,本次查询耗时\033[032;1m%s\033[0m秒'%(count,cost_time)
 def repay():
     import time
     edu = eduload(username)
-    want_to_repay=raw_input('请输入您的还款金额：').strip()
-    new_edu = float(edu) + float(want_to_repay)
-    eduupdate(username,new_edu)
-    buydate = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
-    shouxufei=0
-    loger(username,buydate,'还款',-float(want_to_repay),shouxufei,-float(want_to_repay),new_edu)
-    edu = eduload(username)
-    print '您最新的额度为%s元'%(edu)
+    while True:
+        want_to_repay=raw_input('请输入您的还款金额：').strip()
+        if want_to_repay.isdigit() is  True and len(want_to_repay) !=0 and int(want_to_repay) >0:
+            new_edu = float(edu) + float(want_to_repay)
+            eduupdate(username,new_edu)
+            buydate = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
+            shouxufei=0
+            loger(username,buydate,'还款',-float(want_to_repay),shouxufei,-float(want_to_repay),new_edu)
+            edu = eduload(username)
+            print '您最新的额度为\033[32;1m%s\033[0m元'%(edu)
+            break
+        else:
+            print '请输入大于零的\033[31;1m 数字\033[0m！'
 def loger(account,tran_date,shop,amount,interest,benxi,shengyuedu):
     logfile='credit_card.log'
     f=file(logfile,'a')
@@ -172,41 +187,32 @@ def eduload(username):
       edu=info_dic['%s'%username][1]
       return edu
 #####################################################################
-import sys
-user_file='account.txt'
-lock_file='account_lock.txt'
-with open(user_file) as f:
-    user_list=f.readlines()
-with open(lock_file) as f:
-    lock_list=[]
-    for line in f.readlines():
-        line=line.strip('\n')
-        lock_list.append(line)
-    print "\033[32;1mThanks for using this system!\033[0m"
+print "\033[32;1m 欢迎使用招商信用卡系统!\033[0m"
 while True:
-    username=raw_input('Please input your account:').strip()
+    username=raw_input('请输入您的账号:').strip()
     if len(username) == 0:
         continue
     else:
         if username in lock_list:
-            print 'The account is \033[31;1mlocked\033[0m'
+            print '该用户已经被\033[31;1m锁定\033[0m！'
             sys.exit()
         else:
             for line in user_list:
                 line=line.split()
                 if line[0] == username:
                     for i in range(3):
-                        password=raw_input('Please input your password:').strip()
+                        #password=raw_input('请输入您的密码:').strip()
+                        password=getpass.getpass('请输入您的密码:').strip()
                         if len(password) == 0:
                             continue
                         else:
                             if  line[1] == password:
-                                print '\033[32;1mWelcome to the Our System!!!\033[0m'
+                                print '\033[32;1m 恭喜您，登陆成功!!!\033[0m'
                                 choose()
                             else:
-                                print "\033[31;1mThe password may input errors!\033[0m"
+                                print "\033[31;1m密码输入错误!!\033[0m"
                     else:
-                        print '\033[32;1mAmounts of input error, system exit. Thank you for using this system!!!!\033[0m'
+                        print '\033[32;1m输入错误次数过多，欢迎使用该系统！\033[0m'
                         with open(user_file) as f:
                             user_exist=[]
                             for line in f.readlines():
