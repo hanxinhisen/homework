@@ -19,7 +19,8 @@ def choose():
                    2:查询剩余额度
                    3.查询账单
                    4.还款
-                   5.退出
+                   5.转账
+                   6.退出
     """
     while True:
         print notice
@@ -45,6 +46,8 @@ def choose():
             elif int(choose) == 4:
                 repay()
             elif int(choose) == 5:
+                zhuanzhang(username)
+            elif int(choose) == 6:
                 sys.exit()
 def cash(username):
     import time
@@ -68,7 +71,7 @@ def cash(username):
                 eduupdate(username,shengyu)
                 break
         else:
-            print '请输入大于零的\033[31;1m 数字\033[0m！'
+            print '请输入大于零的整数\033[31;1m 数字\033[0m！'
     #else:
     #    print '超过额度余额！'
 def buy(username):
@@ -86,9 +89,7 @@ def buy(username):
     while True:
         want_to_buy=raw_input('请输入商品名称:').strip()
         if want_to_buy == 'quit':
-            for i in  range(len(shoplist)):
-                print '您购买了一下商品：'
-                print i
+            print "您本次购物购买了：",' '.join(shoplist)
             break
         if want_to_buy in shop:
             jiner = jiage[shop.index(want_to_buy)]
@@ -146,7 +147,7 @@ def repay():
     edu = eduload(username)
     while True:
         want_to_repay=raw_input('请输入您的还款金额：').strip()
-        if want_to_repay.isdigit() is  True and len(want_to_repay) !=0 and int(want_to_repay) >0:
+        if want_to_repay.isdigit() is  True and len(want_to_repay) !=0 and float(want_to_repay) >0:
             new_edu = float(edu) + float(want_to_repay)
             eduupdate(username,new_edu)
             buydate = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
@@ -156,7 +157,46 @@ def repay():
             print '您最新的额度为\033[32;1m%s\033[0m元'%(edu)
             break
         else:
-            print '请输入大于零的\033[31;1m 数字\033[0m！'
+            print '请输入大于零的整数\033[31;1m 数字\033[0m！'
+def zhuanzhang(username):
+    print username
+    import time
+    user_file='account.txt'
+    all=[ ]
+    with open(user_file) as f:
+      user_list=f.readlines()
+    for line in user_list:
+          line=line.split()
+          all.append(line[0])
+    status=True
+    while status:
+        zhuanru1=raw_input('请输入转入账户：').strip()
+        zhuanru2=raw_input('请再次输入转入账户：').strip()
+        if zhuanru1.isdigit() is True and zhuanru2.isdigit() is True and  zhuanru1 == zhuanru2 and len(zhuanru1) ==6 \
+                                                                                               and len(zhuanru2) ==6:
+             if zhuanru2 in all:
+                while True:
+                    jiner=raw_input('请输入转出金额：').strip()
+                    edu_chu_old=eduload(username)
+                    if jiner.isdigit() is  True and float(edu_chu_old) >= float(jiner) :
+                        edu_chu_new=float(edu_chu_old) - float(jiner)
+                        edu_ru_old=eduload(zhuanru2)
+                        edu_ru_new=float(edu_ru_old) + float(jiner)
+                        eduupdate(username,edu_chu_new)
+                        eduupdate(zhuanru2,edu_ru_new)
+                        tran_date = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
+                        loger(username,tran_date,'转出至:%s'%zhuanru2,float(jiner),0,float(jiner),edu_chu_new)
+                        loger(zhuanru2,tran_date,'转入自:%s'%username,-float(jiner),0,-float(jiner),edu_ru_new)
+                        print '成功从账号:\033[32;1m%s\033[0m转账至账号:\033[32;1m%s\033[0m转出\033[32;1m%s\033[0m元！'%(username,zhuanru2,jiner)
+                        status = False
+                        break
+                    else:
+                        print '金额超出额度或者输入内容错误！！'
+             else:
+                print '转入账户不存在！'
+        else:
+            print '输入内容不合法或者两次输入账户不一致，请重新输入！'
+            continue
 def loger(account,tran_date,shop,amount,interest,benxi,shengyuedu):
     logfile='credit_card.log'
     f=file(logfile,'a')
@@ -228,8 +268,3 @@ while True:
                                 sys.exit()
                         else:
                                 sys.exit()
-
-
-
-
-
