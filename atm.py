@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 #coding:utf-8
+#write 2014-09-11 23:24:00
 import sys
 import getpass
 import time
@@ -64,7 +65,7 @@ def cash(username):
         if jiner.isdigit() is  True and len(jiner) !=0 and int(jiner) > 0 and float(edu)>float(jiner):
             shouxufei=float(jiner)*0.01
             benxi=float(jiner) +float(shouxufei)
-            shengyu=float(edu) - float(benxi)
+            shengyu=float(edu) - float(jiner)
             print '本次取现金额为\033[32;1m%s\033[0m元，手续费为\033[32;1m%s\033[0m元'%(jiner,shouxufei)
             loger(username,buydate,'取现',float(jiner),shouxufei,benxi,shengyu)
             if float(shengyu) < 0:
@@ -151,21 +152,85 @@ def account_list(username):
                cost_time=time2 - time1
                print '总共找到\033[032;1m%s\033[0m条记录,本次查询耗时\033[032;1m%s\033[0m秒'%(count,cost_time)
 def repay():
+    #edu = eduload(username)
+    #while True:
+    #    want_to_repay=raw_input('请输入您的还款金额：').strip()
+    #    if want_to_repay.isdigit() is  True and len(want_to_repay) !=0 and float(want_to_repay) >0:
+    #        edu = eduload(username)
+    #        buydate = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
+    #        shouxufei=0
+    #        new_edu = float(want_to_repay) + float(edu)
+    #        loger(username,buydate,'还款',-float(want_to_repay),shouxufei,-float(want_to_repay),new_edu)
+    #        eduupdate(username,new_edu)
+    #        edu = eduload(username)
+    #        print '您最新的额度为\033[32;1m%s\033[0m元'%(edu)
+    #        break
+    #    else:
+    #        print '请输入大于零的整数\033[31;1m 数字\033[0m！'
+    with open('credit_card.log') as f:
+        zonge=[ ]
+        shouxufeizonge=[ ]
+        for line in f.xreadlines():
+            line = line.split()
+            if line[0]== username:
+               zonge.append(float(line[6]))
+               shouxufeizonge.append(float(line[5]))
+        zonge=sum(zonge)
+        shouxufeizonge=sum(shouxufeizonge)
     edu = eduload(username)
-    while True:
-        want_to_repay=raw_input('请输入您的还款金额：').strip()
-        if want_to_repay.isdigit() is  True and len(want_to_repay) !=0 and float(want_to_repay) >0:
+    print '''请选择还款方式：
+                1.全额还款
+                2.指定金额还款
+                   '''
+    status=True
+    while status:
+        choose=raw_input('请输入1或者2:').strip()
+        if choose is '1':
+            print '您选择了全额还款！'
+            print '全款还款金额为:%s元'%zonge
             buydate = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
             shouxufei=0
-            edu = eduload(username)
-            new_edu = float(want_to_repay) + float(sum(zonge))
-            loger(username,buydate,'还款',-float(want_to_repay),shouxufei,-float(want_to_repay),new_edu)
+            new_edu = float(zonge) - float(shouxufeizonge) + float(edu)
+            loger(username,buydate,'全额还款',-float(zonge),shouxufei,-float(zonge),new_edu)
             eduupdate(username,new_edu)
             edu = eduload(username)
             print '您最新的额度为\033[32;1m%s\033[0m元'%(edu)
+            status = False
             break
+        elif choose is '2':
+            print '您选择了指定金额还款(注：指定还款金额不能大于当月所有欠款金额)'
+            while True:
+               want_to_repay=raw_input('请输入您的还款金额：').strip()
+               #print '--------------------------------------'
+               #print want_to_repay
+               #print zonge
+               #print '--------------------------------------'
+               if want_to_repay.isdigit() is  True and len(want_to_repay) !=0 and float(want_to_repay) <= float(zonge):
+                   edu = eduload(username)
+                   buydate = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
+                   shouxufei=0
+                   new_edu = float(want_to_repay)  + float(edu)
+                   ##判读额度超过15000的话，额度定死为15000，免得额度增加。还款时除了要还清本机外还要还清利息，还利息时额度不能涨
+                   if float(new_edu) <= 15000:
+                       loger(username,buydate,'定额还款',-float(want_to_repay),shouxufei,-float(want_to_repay),new_edu)
+                       eduupdate(username,new_edu)
+                       edu = eduload(username)
+                       print '您最新的额度为\033[32;1m%s\033[0m元'%(edu)
+                       status = False
+                       break
+                   else:
+                       new_edu=15000
+                       loger(username,buydate,'定额还款',-float(want_to_repay),shouxufei,-float(want_to_repay),new_edu)
+                       eduupdate(username,new_edu)
+                       edu = eduload(username)
+                       print '您最新的额度为\033[32;1m%s\033[0m元'%(edu)
+                       status = False
+                       break
+               else:
+                   print '请输入大于零的整数\033[31;1m 数字\033[0m！'
         else:
-            print '请输入大于零的整数\033[31;1m 数字\033[0m！'
+            print '请选择1或者2'
+            continue
 def zhuanzhang(username):
     user_file='account.txt'
     all=[ ]
