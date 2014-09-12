@@ -60,7 +60,7 @@ def cash(username):
     today = time.strftime('%d',time.localtime(time.time()))
     yuedi=30-int(today)
     while True:
-        jiner=raw_input("请输入取现金额:(输入'quit'可退出)").strip()
+        jiner=raw_input("请输入取现金额(输入'quit'可退出):").strip()
         if jiner == 'quit' : break
         if jiner.isdigit() is  True and len(jiner) !=0 and int(jiner) > 0 and float(edu)>float(jiner):
             shouxufei=float(jiner)*0.01
@@ -249,6 +249,9 @@ def zhuanzhang(username):
                 while True:
                     jiner=raw_input('请输入转出金额：').strip()
                     edu_chu_old=eduload(username)
+                    if jiner == 'quit':
+                       status=False
+                       break
                     if jiner.isdigit() is  True and float(edu_chu_old) >= float(jiner) :
                         edu_chu_new=float(edu_chu_old) - float(jiner)
                         edu_ru_old=eduload(zhuanru2)
