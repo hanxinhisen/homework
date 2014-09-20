@@ -5,7 +5,7 @@ import os
 class Role:
     def __init__(self,name,age,shenfen):
         os.system('clear')
-        print '人物属性更新中。。。请稍后。。。'
+        print '游戏加载中。。。请稍后。。。'
         time.sleep(3)
         self.Name=name
         self.Age=age
@@ -17,12 +17,13 @@ class Role:
           角色年龄:%s
           角色身份:%s
           '''%(self.Name,self.Age,self.Shenfen)
-    def gongzuo(self,gongzuo):
+    def gongzuo(self,name,gongzuo):
          self.gongzuo=gongzuo
-         print '现在的工作是:%s'%self.gongzuo
-    def gongzi(self,gongzi):
+         self.name=name
+         print '%s现在的工作是:%s'%(self.name,self.gongzuo)
+    def gongzi(self,name,gongzi):
          self.gongzi=gongzi
-         print '现在的工资是:%s'%self.gongzi
+         print '%s现在的工资是:%s'%(self.name,self.gongzi)
     def gushipangbai1(self,name,gfname):
         print '故事发生在好几年前,%s和%s是男女朋友关系,这一年的高考结束了。。'%(name,gfname)
         time.sleep(2)
@@ -33,7 +34,22 @@ class Role:
         print '........此处省略1000字..........'
         print '最终%s和%s还是败给了现实,%s最终去了北京上大学了'%(name,gfname,gfname)
         print '%s为了给%s教学费，偷偷的来到北京想找一份工作'%(name,gfname)
+        print '找工作中。。。。。。'
+        time.sleep(5)
+    def gushipangbai2(self,name,gfname):
+        print '%s有了工资,找到了女票%s说:"我现在上班了可以给你交学费买LV了"'%(name,gfname)
         time.sleep(2)
+        print '%s说对不起，我已经爱上我们公司总裁了，他说鱼塘都被我承包了'%gfname
+        time.sleep(5)
+    def gushipangbai3(self,name,gfname):
+        print '而在这时候,%s被高富帅甩了,%s找到了%s'%(gfname,gfname,name)
+        time.sleep(2)
+        print '%s:  %s 其实我一直爱的是你 我们还能在一起吗?'%(gfname,name)
+        time.sleep(2)
+    def gushipangbai4(self,name):
+        sleep(2)
+        print '经过几年的奋斗,%s出任了公司的IT总监,在北京买了车买了房'%name
+        sleep(2)
 class Diaosi(Role):
      def __init__(self,name,age,gfname,shenfen):
          Role.__init__(self,name,age,shenfen)
@@ -50,6 +66,7 @@ class Diaosi(Role):
          time.sleep(5)
          print '经过四个月的艰苦学习，终于学完了,辞掉网吧工作开始找新的工作了'
          print '他来到一家互联网公司'
+         time.sleep(3)
 class Gafushuai(Role):
     def __init__(self,name,age,gfname,shenfen):
          Role.__init__(self,name,age,shenfen)
@@ -79,8 +96,8 @@ class Laoban(Role):
          if int(daan1) is 1 and int(daan2) is 2:
                 print '恭喜，%s 被录用了，工资1000'%name
                 D=Diaosi(self.Name,self.Age,'x',self.Shenfen)
-                D.gongzuo('网管')
-                D.gongzi('1000')
+                D.gongzuo(name,'网管')
+                D.gongzi(name,'1000')
          else:
                 print '这点常识都没有？？继续做你屌丝吧'
                 result = 'faile'
@@ -92,21 +109,28 @@ class Laoban(Role):
          1.动态语言  2.静态语言
          '''
          print '''
-         有 g = lambda x, y: x*y，则 g(3,4)值为多少?
-         1.12      2.81
+         标准库random实现了一个随机数生成器，实例代码如下：
+         import random
+         random.random()
+         则会得到怎样的随机数？
+         1.浮点型数字    2.整型数字
          '''
          daan1=raw_input('请输入第一题答案:').strip()
          daan2=raw_input('请输入第二题答案:').strip()
          if int(daan1) is 1 and int(daan2) is 1:
                 print '恭喜，%s 被录用了，工资10000'%name
                 D=Diaosi(self.Name,self.Age,'x',self.Shenfen)
-                D.gongzuo('Python 工程师')
-                D.gongzi('100000')
+                D.gongzuo(name,'Python 工程师')
+                D.gongzi(name,'100000')
+                D.gushipangbai4(name)
          else:
-                print '这点常识都没有？？继续做你屌丝吧'
+                print '很遗憾，您未通过面试。。。'
+                D.gongzuo(name,'网管')
+                D.gongzi(name,'1000')
 
 def gamerun():
     while True:
+        os.system('clear')
         print '欢迎进入游戏世界！'
         print '''
               请选择一个角色吧：
@@ -142,14 +166,11 @@ def gamerun():
                 if choose1 is 'y':
                     L=Laoban('Old boy','35','网吧老板')
                     L.gongsiming('etiantian 网吧')
-                    L.print_info()
-                    L.mianshi1(name)
-                    print '=============================================='
-                    print '%s有了工资,找到了女票%s说:"我现在上班了可以给你交学费买LV了"'%(name,gfname)
-                    time.sleep(2)
-                    print '%s说对不起，我已经爱上我们公司总裁了，他说鱼塘都被我承包了'%gfname
+                    L.print_info()   ##打印网吧老板信息
+                    L.mianshi1(name)  ##进行网吧面试
+                    D.gushipangbai2(name,gfname) ##旁白
                     G=Gafushuai('王思聪','30','None','富二代')
-                    G.print_info()
+                    G.print_info()   ##打印高富帅信息
                     choose2=raw_input('到此结束感情?接受现实请选择1,否则请选择2:').strip()
                     if int(choose2) is 1:
                         print '游戏到此结束，屌丝最终败给了现实'
@@ -157,11 +178,10 @@ def gamerun():
                         D.study(gfname)  #奋力学习，后面参数是想引用姓名
                         L2=Laoban('李彦宏','35','百度老板')
                         L2.gongsiming('百度')
-                        L2.print_info()
-                        L2.mianshi2(name)
-                        print '而在这时候,%s被高富帅甩了,%s找到了%s'%(gfname,gfname,name)
-                        print '%s:  %s 其实我一直爱的是你 我们还能在一起吗?'%(gfname,name)
-                        choose3=raw_input('同意在一起请输入1,不同意请输入2').strip()
+                        L2.print_info() ##打印第二家公司老板信息
+                        L2.mianshi2(name)##第二家公司面试
+                        D.gushipangbai3(name,gfname)
+                        choose3=raw_input('同意在一起请输入1,不同意请输入2:').strip()
                         if int(choose3) is 1:
                             print '有情人终成眷属,游戏结束。。'
                         else:
