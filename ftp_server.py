@@ -1,12 +1,12 @@
 #!/usr/bin/env python
+#coding:utf-8
 import SocketServer
 import os
 import time
 import commands
 import MySQLdb
 class MySockServer(SocketServer.BaseRequestHandler):
-    def ftp_down(obj,msg_length ):
-            raw_result = ''
+    def ftp_down(self,obj,msg_length,des_file):
             while msg_length != 0:
                 if msg_length <= 4096:
                     data= obj.recv(msg_length)
@@ -14,8 +14,8 @@ class MySockServer(SocketServer.BaseRequestHandler):
                 else:
                     data= obj.recv(4096)
                     msg_length -= 4096
-                raw_result += data
-            return raw_result
+                des_file.write(data)
+            return 'finish'
     def db_qurey_md5_check(self,username,md5):
       try:
         conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
@@ -53,24 +53,43 @@ class MySockServer(SocketServer.BaseRequestHandler):
     def handle(self):
           print 'i have got a connection from ',self.client_address
           while True:
-              user_info_recived=self.request.recv(4096).strip()
-              print user_info_recived
-              username,passwd=user_info_recived.split()
-              result1=self.user_check(username,passwd)
-              self.request.send(str(result1))
-              print user_info_recived
-              cmd_recived=self.request.recv(4096).strip()
-              if not cmd_recived:
-                  print 'Lost Connection from:',self.client_address
-                  break
-              print cmd_recived
-              username,cmd,filename,filesize,filemd5=cmd_recived.split()
-              if cmd == 'put':
-                result2=self.db_qurey_md5_check(username,filemd5)
-                print result2
-                self.request.send(str(result2))
+              while True:
+                user_info_recived=self.request.recv(4096).strip() #将客户端输入的用户名和密码进行验证
+                print user_info_recived
+                username,passwd=user_info_recived.split()
+                result1=self.user_check(username,passwd)
+                self.request.send(str(result1))
+                print user_info_recived
+                if len(result1) == 1:
+                    break
+              while True: #循环接收命令
+                print '------------------wait for commands--------------'
+                cmd_recived=self.request.recv(4096).strip()
+                if not cmd_recived:
+                    print 'Lost Connection from:',self.client_address
+                    break
+                print cmd_recived
+                print '1111111111111111111111111111111111111111'
+                username,cmd,filename,filesize,filemd5=cmd_recived.split()
+                if cmd == 'put':
+                  result2=self.db_qurey_md5_check(username,filemd5)
+                  print result2
+                  self.request.send(str(result2))
+                  print '22222222222222222222222222222222222222222'
+                  ###result2为列表 如果数据库中没有将要上传文件的md5则返回空列表
+                  if len(result2) == 0:
+                    if os.path.exists(username):
+                      pass
+                    else:
+                      os.mkdir(username)
+                    f=file('%s/%s'%(username,filename),'wb')
+                    write_to_file=self.ftp_down(self.request,int(filesize),f)
+                    print '3333333333333333333333333333333333333333'
+                    if write_to_file == 'finish':
+                       self.request.send('file upload success')
+                       f.close()
 if __name__ == '__main__':
     h='0.0.0.0'
-    p=8888
+    p=8889
     s=SocketServer.ThreadingTCPServer((h,p),MySockServer)
     s.serve_forever()
