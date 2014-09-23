@@ -5,7 +5,14 @@ import os
 import time
 import commands
 import MySQLdb
+from hashlib import md5
 class MySockServer(SocketServer.BaseRequestHandler):
+    def md5_file(self,filename):   #校验文件md5值
+          m = md5()
+          a_file = open(filename, 'rb')
+          m.update(a_file.read())
+          a_file.close()
+          return m.hexdigest()
     def ftp_down(self,obj,msg_length,des_file):
             while msg_length != 0:
                 if msg_length <= 4096:
@@ -32,18 +39,32 @@ class MySockServer(SocketServer.BaseRequestHandler):
         return tmp
       except MySQLdb.Error,e:
          print 'mysql error mes:',e
+    def db_insert_fileinfo(self,username,filename,filesize,filemd5):
+        try:
+            conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
+            cur=conn.cursor()
+            conn.select_db('ftp_server')
+            tmp=('%s'%username,'%s'%filename,'%s'%filesize,'%s'%filemd5)
+            print '44444444444444444444444444444444444444'
+            print tmp
+            print '444444444444444444444444444444444444444'
+            cur.execute('insert into ftp_info value(null,%s,%s,%s,%s)',tmp)
+            conn.commit()
+            cur.close()
+            conn.close()
+            return 'success'
+        except MySQLdb.Error,e:
+            print 'mysql error mes:',e
     def user_check(self,username,password):
         try:
           conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
           cur=conn.cursor()
           conn.select_db('ftp_server')
-          cur.execute("SELECT * FROM `ftp_info` where `name` ='%s' and  `passwd` = '%s'"%(username,password))
+          cur.execute("SELECT * FROM `user_info` where `name` ='%s' and  `passwd` = '%s'"%(username,password))
           result= cur.fetchall()
           print result
           tmp=[]
           for row in result:
-              #for r in row:
-              #    print r
               tmp.append(row)
           cur.close()
           conn.close()
@@ -78,18 +99,31 @@ class MySockServer(SocketServer.BaseRequestHandler):
                   print '22222222222222222222222222222222222222222'
                   ###result2为列表 如果数据库中没有将要上传文件的md5则返回空列表
                   if len(result2) == 0:
-                    if os.path.exists(username):
+                    if os.path.exists('/home/ftp/%s'%username):
+                      print '5555555555555555555555555'
                       pass
                     else:
-                      os.mkdir(username)
-                    f=file('%s/%s'%(username,filename),'wb')
+                      os.mkdir('/home/ftp/%s'%username)
+                    f=file('/home/ftp/%s/%s'%(username,filename),'wb')
                     write_to_file=self.ftp_down(self.request,int(filesize),f)
                     print '3333333333333333333333333333333333333333'
+                    print write_to_file
                     if write_to_file == 'finish':
-                       self.request.send('file upload success')
-                       f.close()
+                      f=file('/home/ftp/%s/%s'%(username,filename),'rb')
+                      if self.md5_file(filename) == filemd5: ###判断接收到的文件md5是否与源文件相同
+                          insert_result=self.db_insert_fileinfo(username,filename,filesize,filemd5)
+                          if insert_result == 'success': #判断信息是否插入成功
+                              self.request.send('finish')   
+                              print '55555555555555555555555555555555555'
+                              f.close()
+                          else:
+                              print '插入数据库错误'
+                              self.request.send('error')
+                      else:
+                          print '接收到的文件和源文件md5不一致'
+                          self.request.send('error')                      
 if __name__ == '__main__':
     h='0.0.0.0'
-    p=8889
+    p=8887
     s=SocketServer.ThreadingTCPServer((h,p),MySockServer)
     s.serve_forever()
