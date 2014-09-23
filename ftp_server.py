@@ -77,7 +77,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
               while True:
                 user_info_recived=self.request.recv(4096).strip() #将客户端输入的用户名和密码进行验证
                 print user_info_recived
-                username,passwd=user_info_recived.split()
+                username,passwd=user_info_recived.split()[:2]
                 result1=self.user_check(username,passwd)
                 self.request.send(str(result1))
                 print user_info_recived
