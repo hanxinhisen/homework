@@ -5,7 +5,7 @@ import  socket
 import os
 import hashlib
 from hashlib import md5
-host='172.16.110.251'
+host='192.168.1.103'
 port=8887
 s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 s.connect((host,port))
@@ -31,10 +31,10 @@ while True:
     while True:
       username=raw_input('input your username:').strip()
       password=raw_input('input your password:').strip()
-      if len(username) == 0 or len(password) ==0:
-         print '用户名或密码不能为空'
-      else:
+      if len(username) >= 6 and len(password) >=6:
          break
+      else:
+         print '用户名或密码长度至少为6位！'
     ###验证用户名密码
     password=hashlib.md5(password).hexdigest()
     print '+++++++++++++++++++++++++++++++++++++'
@@ -64,7 +64,7 @@ while True:
                           print '---------------------------------------'
                           print md5_check_result
                           print '正在发送。。。'
-                          s.send(f.read())
+                          s.sendall(f.read())
                           print '++++++++++++++++++++++++++'
                           if len(s.recv(1024)) == 6:   #如果上传完成,server端会发送'finish'字符串，可以判断长度继而判断上传与否
                              print '上传完成'
