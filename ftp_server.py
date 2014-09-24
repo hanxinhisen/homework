@@ -14,18 +14,22 @@ class MySockServer(SocketServer.BaseRequestHandler):
           m.update(a_file.read())
           a_file.close()
           return m.hexdigest()
-    def ftp_down(self,obj,msg_length,des_file):
-            while msg_length != 0:
-                if msg_length <= 4096:
-                    print 'lalallllallalall'
-                    data= obj.recv(msg_length)
-                    msg_length =0
-                    print msg_length
+    def ftp_down(self,username,filename,msg_length):
+            self.username=username
+            self.filename=filename
+            self.msg_length=msg_length
+            f=file('/home/ftp/%s/%s'%(self.username,self.filename),'wb+')
+            while True:
+                if self.msg_length > 4096:
+                   filedata = self.request.recv(4096)
                 else:
-                    data= obj.recv(4096)
-                    msg_length -= 4096
-                    print msg_length
-                des_file.write(data)
+                   filedata = self.request.recv(self.msg_length)
+                if not filedata:break
+                f.write(filedata)
+                self.msg_length=self.msg_length-len(filedata)
+                if self.msg_length ==0:
+                  break
+            f.close()                  
             return 'finish'
     def db_qurey_md5_check(self,username,md5):
       try:
@@ -34,7 +38,6 @@ class MySockServer(SocketServer.BaseRequestHandler):
         conn.select_db('ftp_server')
         cur.execute("SELECT * FROM `ftp_info` where `name` ='%s' and  `filemd5` = '%s'"%(username,md5))
         result= cur.fetchall()
-        print result
         tmp=[]
         for row in result:
             tmp.append(row)
@@ -49,9 +52,6 @@ class MySockServer(SocketServer.BaseRequestHandler):
             cur=conn.cursor()
             conn.select_db('ftp_server')
             tmp=('%s'%username,'%s'%filename,'%s'%filesize,'%s'%filemd5)
-            print '44444444444444444444444444444444444444'
-            print tmp
-            print '444444444444444444444444444444444444444'
             cur.execute('insert into ftp_info value(null,%s,%s,%s,%s)',tmp)
             conn.commit()
             cur.close()
@@ -59,14 +59,18 @@ class MySockServer(SocketServer.BaseRequestHandler):
             return 'success'
         except MySQLdb.Error,e:
             print 'mysql error mes:',e
-    def user_check(self,username,password):
+    def user_check(self):
+        user_info_recived=self.request.recv(4096).strip() #将客户端输入的用户名和密码进行验证
+        if len(user_info_recived) == 0:
+           print 'Lost Connection from:',self.client_address
+        else:
+            username,passwd=user_info_recived.split()[:2] #防止用户名输入空格，产生影响，自动截取前两个元素
         try:
           conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
           cur=conn.cursor()
           conn.select_db('ftp_server')
-          cur.execute("SELECT * FROM `user_info` where `name` ='%s' and  `passwd` = '%s'"%(username,password))
+          cur.execute("SELECT * FROM `user_info` where `name` ='%s' and  `passwd` = '%s'"%(username,passwd))
           result= cur.fetchall()
-          print result
           tmp=[]
           for row in result:
               tmp.append(row)
@@ -76,64 +80,45 @@ class MySockServer(SocketServer.BaseRequestHandler):
         except MySQLdb.Error,e:
           print 'mysql error mes:',e
     def handle(self):
-          print 'i have got a connection from ',self.client_address
-          while True:
-              while True:
-                user_info_recived=self.request.recv(4096).strip() #将客户端输入的用户名和密码进行验证
-                print user_info_recived
-                username,passwd=user_info_recived.split()[:2] #防止用户名输入空格，产生影响，自动截取前两个元素
-                result1=self.user_check(username,passwd)
-                self.request.send(str(result1))
-                print user_info_recived
-                if len(result1) == 1:
-                    break
-              while True: #循环接收命令
-                print '------------------wait for commands--------------'
-                cmd_recived=self.request.recv(4096).strip()
-                if not cmd_recived:
-                    print 'Lost Connection from:',self.client_address
-                    break
-                print cmd_recived
-                print '1111111111111111111111111111111111111111'
-                username,cmd,filename,filesize,filemd5=cmd_recived.split()
-                print filesize
-                time.sleep(10)
-                if cmd == 'put':
-                  result2=self.db_qurey_md5_check(username,filemd5)
-                  print result2
-                  self.request.send(str(result2))
-                  print '22222222222222222222222222222222222222222'
-                  ###result2为列表 如果数据库中没有将要上传文件的md5则返回空列表
-                  if len(result2) == 0:
-                    if os.path.exists('/home/ftp/%s'%username): #判断用户目录是否存在
-                      print '5555555555555555555555555'
-                      pass
-                    else:
-                      os.mkdir('/home/ftp/%s'%username)
-                    f=file('/home/ftp/%s/%s'%(username,filename),'wb+')
-                    write_to_file=self.ftp_down(self.request,int(filesize),f)
-                    f.close()
-                    print '3333333333333333333333333333333333333333'
-                    print write_to_file
-                    if write_to_file == 'finish':
-                      #f=file('/home/ftp/%s/%s'%(username,filename),'rb')
-                      print '6666666666666666666666666666666'
-                      print self.md5_file('/home/ftp/%s/%s'%(username,filename))
-                      print filemd5
-                      print '7777777777777777777777777777777777'
-                      if self.md5_file('/home/ftp/%s/%s'%(username,filename)) == filemd5: ###判断接收到的文件md5是否与源文件相同
-                          insert_result=self.db_insert_fileinfo(username,filename,filesize,filemd5)
-                          if insert_result == 'success': #判断信息是否插入成功
-                              self.request.send('finish')   
-                              print '55555555555555555555555555555555555'
+            print 'i have got a connection from ',self.client_address
+            print '验证用户名开始。。。。'
+            result1=self.user_check()
+            self.request.send(str(result1))
+            print '验证用户名结束'
+            if len(result1) == 1:
+                while True: #循环接收命令
+                  print '------------------wait for commands--------------'
+                  cmd_recived=self.request.recv(4096).strip()
+                  print cmd_recived
+                  if len(cmd_recived) == 0:
+                      print 'Lost Connection from:',self.client_address
+                      break
+                  else:
+                      username,cmd,filename,filesize,filemd5=cmd_recived.split()
+                      if cmd == 'put':
+                        result2=self.db_qurey_md5_check(username,filemd5)
+                        self.request.send(str(result2))
+                        ###result2为列表 如果数据库中没有将要上传文件的md5则返回空列表
+                        if len(result2) == 0:
+                          if os.path.exists('/home/ftp/%s'%username): #判断用户目录是否存在
+                            pass
                           else:
-                              print '插入数据库错误'
-                              self.request.send('error')
-                      else:
-                          print '接收到的文件和源文件md5不一致'
-                          self.request.send('error')                      
+                            os.mkdir('/home/ftp/%s'%username)
+                          write_to_file=self.ftp_down(username,filename,int(filesize))
+                          if write_to_file == 'finish':
+                            if self.md5_file('/home/ftp/%s/%s'%(username,filename)) == filemd5: ###判断接收到的文件md5是否与源文件相同
+                                insert_result=self.db_insert_fileinfo(username,filename,filesize,filemd5)
+                                if insert_result == 'success': #判断信息是否插入成功
+                                    self.request.send('finish')
+                                else:
+                                    print '插入数据库错误'
+                                    self.request.send('error')
+                                continue   #数据库插入成功与否都要重新接收command
+                            else:
+                                print '接收到的文件和源文件md5不一致'
+                                self.request.send('error')
 if __name__ == '__main__':
     h='0.0.0.0'
-    p=8887
+    p=8888
     s=SocketServer.ThreadingTCPServer((h,p),MySockServer)
     s.serve_forever()

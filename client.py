@@ -2,13 +2,15 @@
 #coding:utf-8
 #For FTP client
 import  socket
-import os
-import hashlib
+import  os
+import  hashlib
+import  time
 from hashlib import md5
 host='192.168.1.103'
-port=8887
+port=8888
 s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 s.connect((host,port))
+buffersize=4096
 def recv_all(obj,msg_length ):
     raw_result = ''
     while msg_length != 0:
@@ -53,7 +55,6 @@ while True:
             if user_cmd[0] =='put':
                 if len(user_cmd) == 2:
                   try:
-                    f=file(user_cmd[1],'rb')
                     f_size=os.stat(user_cmd[1]).st_size
                     f_md5=md5_file(user_cmd[1])
                     s.sendall("%s %s %s %s %s"%(username,user_cmd[0],user_cmd[1],f_size,f_md5))
@@ -64,10 +65,22 @@ while True:
                           print '---------------------------------------'
                           print md5_check_result
                           print '正在发送。。。'
-                          s.sendall(f.read())
+                          f=file(user_cmd[1],'rb')
+                          f_size_shishi = f_size
+                          time1=time.time()
+                          while True:
+                             data=f.read(buffersize)
+                             if not data:break
+                             s.send(data)
+                             f_size_shishi = f_size_shishi - buffersize
+                             f_finish=f_size-f_size_shishi
+                             a=(format(float(f_finish) / float(f_size), '.2%'))
+                             print '%s\r'%a,
+                          f.close()
                           print '++++++++++++++++++++++++++'
                           if len(s.recv(1024)) == 6:   #如果上传完成,server端会发送'finish'字符串，可以判断长度继而判断上传与否
-                             print '上传完成'
+                             time2=time.time()
+                             print '上传成功，本次上传消耗\033[31;1m%s\033[0m秒'%(time2 - time1)
                              break
                           else:
                               print '上传失败'
@@ -77,8 +90,8 @@ while True:
                           print '------------------------------'
                           print '文件已存在'
                           break
-                  except IOError,e:
-                        print '输入的文件名错误,请检查'
+                  except (IOError,OSError),e:
+                        print '输入的文件名错误,请检查',e
                         continue
             else:
                 print '命令不存在，请重新输入！！'
