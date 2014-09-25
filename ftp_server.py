@@ -51,13 +51,14 @@ class MySockServer(SocketServer.BaseRequestHandler):
         return tmp
       except MySQLdb.Error,e:
          print 'mysql error mes:',e
-    def db_insert_fileinfo(self,username,filename,filesize,filemd5):
+    def db_insert_fileinfo(self,username,filename,filesize,filemd5,ip):
         try:
             conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
             cur=conn.cursor()
             conn.select_db('ftp_server')
-            tmp=('%s'%username,'%s'%filename,'%s'%filesize,'%s'%filemd5)
-            cur.execute('insert into ftp_info value(null,%s,%s,%s,%s)',tmp)
+            date=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())) #get  time
+            tmp=('%s'%username,'%s'%filename,'%s'%filesize,'%s'%filemd5,'%s'%ip,'%s'%date)
+            cur.execute('insert into ftp_info value(null,%s,%s,%s,%s,%s,%s)',tmp)
             conn.commit()
             cur.close()
             conn.close()
@@ -112,7 +113,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
                           write_to_file=self.ftp_down(username,filename,int(filesize))
                           if write_to_file == 'finish':
                             if self.md5_file('/home/ftp/%s/%s'%(username,filename)) == filemd5: ###判断接收到的文件md5是否与源文件相同
-                                insert_result=self.db_insert_fileinfo(username,filename,filesize,filemd5)
+                                insert_result=self.db_insert_fileinfo(username,filename,filesize,filemd5,self.client_address[0])
                                 if insert_result == 'success': #判断信息是否插入成功
                                     self.request.send('finish')
                                 else:
