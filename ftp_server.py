@@ -6,12 +6,17 @@ import time
 import commands
 import MySQLdb
 import time
+import hashlib
 from hashlib import md5
 class MySockServer(SocketServer.BaseRequestHandler):
     def md5_file(self,filename):   #校验文件md5值
-          m = md5()
+          print '正在计算 %s MD5值。。。'%filename
+          m = hashlib.md5()
           a_file = open(filename, 'rb')
-          m.update(a_file.read())
+          while True:
+            blk=a_file.read(4096)
+            if not blk:break
+            m.update(blk)
           a_file.close()
           return m.hexdigest()
     def ftp_down(self,username,filename,msg_length):

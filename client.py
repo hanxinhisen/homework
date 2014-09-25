@@ -1,12 +1,13 @@
 #!/usr/bin/python
 #coding:utf-8
 #For FTP client
+from __future__ import division
 import  socket
 import  os
 import  hashlib
 import  time
 from hashlib import md5
-host='192.168.1.103'
+host='172.16.110.251'
 port=8888
 s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 s.connect((host,port))
@@ -24,9 +25,12 @@ def recv_all(obj,msg_length ):
     return raw_result
 def md5_file(filename):   #校验文件md5值
     print '正在计算 %s MD5值。。。'%filename
-    m = md5()
+    m = hashlib.md5()
     a_file = open(filename, 'rb')
-    m.update(a_file.read())
+    while True:
+        blk=a_file.read(4096)
+        if not blk:break
+        m.update(blk)
     a_file.close()
     return m.hexdigest()
 while True:
@@ -74,10 +78,11 @@ while True:
                              s.send(data)
                              f_size_shishi = f_size_shishi - buffersize
                              f_finish=f_size-f_size_shishi
-                             a=(format(float(f_finish) / float(f_size), '.2%'))
-                             print '%s\r'%a,
+                             a= (format((f_finish / f_size),'.2%'))
+                             b=str(f_finish / f_size*100).split('.')[0]
+                             print '='*int(b)+'>'+a+'\r',
                           f.close()
-                          print '++++++++++++++++++++++++++'
+                          print '\n'
                           if len(s.recv(1024)) == 6:   #如果上传完成,server端会发送'finish'字符串，可以判断长度继而判断上传与否
                              time2=time.time()
                              print '上传成功，本次上传消耗\033[31;1m%s\033[0m秒'%(time2 - time1)
