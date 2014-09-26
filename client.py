@@ -7,8 +7,8 @@ import  os
 import  hashlib
 import  time
 from hashlib import md5
-host='172.16.110.251'
-port=8888
+host='192.168.1.103'
+port=8889
 s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 s.connect((host,port))
 buffersize=4096
@@ -50,6 +50,16 @@ while True:
     if user_check_result > 2:
         print '验证成功'
         while True:
+            notice='''
+               欢迎使用FTP客户端系统
+                           --基于socket
+              使用方法介绍
+              1.上传功能:put filename
+              2.下载功能:get filename
+              3.列出所有文件:list
+              4.删除文件:delete filename
+              '''
+            print notice
             string=raw_input('input your command:').strip()
             if len(string) == 0:
                print '请输入命令内容！！'
@@ -63,9 +73,14 @@ while True:
                     f_md5=md5_file(user_cmd[1])
                     s.sendall("%s %s %s %s %s"%(username,user_cmd[0],user_cmd[1],f_size,f_md5))
                     while True:
-                      md5_check_result=len(s.recv(1024))
+                      md5_check_result=s.recv(1024)
+                      tmp=repr(md5_check_result)
+                      md5_check_result=len(md5_check_result)
                       print md5_check_result
-                      if md5_check_result == 2: #当数据库中没有该文件的md5值，所以查询返回结果为空列表，2表示前后括号长度，如果为2则上传
+                      print '++++++++++++++++++++++++++++++++'
+                      print tmp.split(',')[4].strip().strip("'")
+                      print '++++++++++++++++++++++++++++++++'
+                      if tmp.split(',')[4].strip().strip("'") != f_md5: #当数据库中没有该文件的md5值，所以查询返回结果为空列表，如果不为空返回来存在的记录，判断用户名即可
                           print '---------------------------------------'
                           print md5_check_result
                           print '正在发送。。。'
@@ -91,13 +106,18 @@ while True:
                               print '上传失败'
                               break
                       else:
-                          print md5_check_result
+                          print '\033[31;1;5m 文件已存在,为了避免重复上传,已经取消本次上传任务 \033[0m'
+                          print " 已存在的文件,服务器端文件名为:\033[32;1m%s\033[0m"%tmp.split(',')[2].strip().strip("'")
                           print '------------------------------'
-                          print '文件已存在'
                           break
                   except (IOError,OSError),e:
                         print '输入的文件名错误,请检查',e
                         continue
+            elif user_cmd[0] =='list':
+                    s.sendall("%s %s %s %s %s"%(username,user_cmd[0],0,0,0))
+                    result=s.recv(4096)
+                    print '文件列表:'
+                    print result
             else:
                 print '命令不存在，请重新输入！！'
                 continue

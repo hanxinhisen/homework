@@ -87,10 +87,10 @@ class MySockServer(SocketServer.BaseRequestHandler):
           print 'mysql error mes:',e
     def handle(self):
             print 'i have got a connection from ',self.client_address
-            print '验证用户名开始。。。。'
+            print 'check username start...'
             result1=self.user_check()
             self.request.send(str(result1))
-            print '验证用户名结束'
+            print 'check username finish...'
             if len(result1) == 1:
                 while True: #循环接收命令
                   print '------------------wait for commands--------------'
@@ -103,6 +103,8 @@ class MySockServer(SocketServer.BaseRequestHandler):
                       username,cmd,filename,filesize,filemd5=cmd_recived.split()
                       if cmd == 'put':
                         result2=self.db_qurey_md5_check(username,filemd5)
+                        a=str(result2).split(',')
+                        print a[2]
                         self.request.send(str(result2))
                         ###result2为列表 如果数据库中没有将要上传文件的md5则返回空列表
                         if len(result2) == 0:
@@ -123,8 +125,13 @@ class MySockServer(SocketServer.BaseRequestHandler):
                             else:
                                 print '接收到的文件和源文件md5不一致'
                                 self.request.send('error')
+                      elif cmd=='list':
+                          #result=os.popen('ls -lh /home/ftp/%s'%username).read()
+                          result=os.popen('ls -lh /home/ftp/%s'%username).read()
+                          self.request.sendall(result)
+                          print result
 if __name__ == '__main__':
     h='0.0.0.0'
-    p=8888
+    p=8889
     s=SocketServer.ThreadingTCPServer((h,p),MySockServer)
     s.serve_forever()
