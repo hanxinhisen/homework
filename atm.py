@@ -86,7 +86,9 @@ def buy(username):
     while True:
         want_to_buy=raw_input('请输入商品名称:').strip()
         if want_to_buy == 'quit':
-            print shoplist
+            for i in  range(len(shoplist)):
+                print '您购买了一下商品：'
+                print i
             break
         if want_to_buy in shop:
             jiner = jiage[shop.index(want_to_buy)]
@@ -135,7 +137,7 @@ def account_list(username):
                today = time.strftime('%d',time.localtime(time.time()))
                huankuanri=30-int(today)
                print a
-               print '距离还款日还有\033[31;1m%s\033[0m天'%huankuanri
+               print '距离还款日还有\033[31;1m%s\033[0m天,本月应还\033[31;1m%s\033[0m元'%(huankuanri,zonge)
                time2=time.time()
                cost_time=time2 - time1
                print '总共找到\033[032;1m%s\033[0m条记录,本次查询耗时\033[032;1m%s\033[0m秒'%(count,cost_time)
