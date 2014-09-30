@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #coding:utf-8
-#write 2014-09-11 23:24:00
+#write 2014-09-13
 import sys
 import getpass
 import time
@@ -120,17 +120,38 @@ def left_amount():
     edu = eduload(username)
     print '您额度目前为\033[32;1m%s\033[0m元'%(edu)
 def account_list(username):
-    with open('credit_card.log') as f:
+    year = time.strftime('%Y',time.localtime(time.time()))
+    mouth=raw_input('请输入要查询的账单月份（比如9月份，请输入09）：')
+    mouth_shang=int(mouth) - 1
+    try:
+      try:
+          if 0< int(mouth_shang) < 10:
+              mouth_shang='0' + str(mouth_shang)
+          else:
+              mouth_shang=mouth_shang
+          with open('credit_card_%s_%s.log'%(year,mouth_shang))as f:
+           zonge_shang=[ ]
+           for line in f.xreadlines():
+              line = line.split()
+              if line[0]== username:
+                zonge_shang.append(float(line[6]))
+           else:
+               zonge_shang=sum(zonge_shang)
+      except IOError,e:
+        print e
+        print '111111111111111111'
+        zonge_shang=0
+      with open('credit_card_%s_%s.log'%(year,mouth)) as f:
        count = 0
        print '查询结果如下：'
        time1=time.time()
        a = PrettyTable(['序号','账户', '消费日期', '消费类型(产品)', '消费金额', '手续费','应还金额'])
-       zonge=[ ]
+       zonge_ben=[ ]
        for line in f.xreadlines():
           line = line.split()
           if line[0]== username:
             count += 1
-            zonge.append(float(line[6]))
+            zonge_ben.append(float(line[6]))
             yinghuan=float(line[4]) + float(line[5])
             a.add_row([count,line[0],line[1]+' '+line[2],line[3],line[4],line[5],yinghuan])
        else:
@@ -139,35 +160,25 @@ def account_list(username):
             else:
                #time2=time.time()
                #cost_time=time2 - time1
-               zonge=sum(zonge)
-               a.add_row(['','','','','','共计(单位：元)：',zonge])
+               zonge_ben=sum(zonge_ben)
+               a.add_row(['','','','','','共计(单位：元)：',zonge_ben])
                today = time.strftime('%d',time.localtime(time.time()))
                huankuanri=30-int(today)
                print a
-               if float(zonge) < 0:
-                 print '距离还款日还有\033[31;1m%s\033[0m天,本月应还\033[31;1m0\033[0m元'%huankuanri
+               if float(zonge_ben) < 0:
+                 print '距离本月还款日还有\033[31;1m%s\033[0m天,本月应还\033[31;1m0\033[0m元,上月未还\033[31;1m%s\033[0m元'   \
+                                                                                            %(huankuanri,zonge_shang)
                else:
-                 print '距离还款日还有\033[31;1m%s\033[0m天,本月应还\033[31;1m%s\033[0m元'%(huankuanri,zonge)
+                 print '距离本月还款日还有\033[31;1m%s\033[0m天,本月应还\033[31;1m%s\033[0m元,上月未还\033[31;1m%s\033[0m元'\
+                                                                                    %(huankuanri,zonge_ben,zonge_shang)
                time2=time.time()
                cost_time=time2 - time1
                print '总共找到\033[032;1m%s\033[0m条记录,本次查询耗时\033[032;1m%s\033[0m秒'%(count,cost_time)
+    except IOError:
+        print '输入内容不合法，或者没有此月份账单！'
 def repay():
-    #edu = eduload(username)
-    #while True:
-    #    want_to_repay=raw_input('请输入您的还款金额：').strip()
-    #    if want_to_repay.isdigit() is  True and len(want_to_repay) !=0 and float(want_to_repay) >0:
-    #        edu = eduload(username)
-    #        buydate = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
-    #        shouxufei=0
-    #        new_edu = float(want_to_repay) + float(edu)
-    #        loger(username,buydate,'还款',-float(want_to_repay),shouxufei,-float(want_to_repay),new_edu)
-    #        eduupdate(username,new_edu)
-    #        edu = eduload(username)
-    #        print '您最新的额度为\033[32;1m%s\033[0m元'%(edu)
-    #        break
-    #    else:
-    #        print '请输入大于零的整数\033[31;1m 数字\033[0m！'
-    with open('credit_card.log') as f:
+    date = time.strftime('%Y_%m',time.localtime(time.time()))
+    with open('credit_card_%s.log'%date) as f:
         zonge=[ ]
         shouxufeizonge=[ ]
         for line in f.xreadlines():
@@ -190,7 +201,8 @@ def repay():
             print '全款还款金额为:%s元'%zonge
             buydate = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
             shouxufei=0
-            new_edu = float(zonge) - float(shouxufeizonge) + float(edu)
+            new_edu = 15000
+            #new_edu = float(zonge) - float(shouxufeizonge) + float(edu)
             loger(username,buydate,'全额还款',-float(zonge),shouxufei,-float(zonge),new_edu)
             eduupdate(username,new_edu)
             edu = eduload(username)
@@ -272,7 +284,8 @@ def zhuanzhang(username):
             print '输入内容不合法或者两次输入账户不一致，请重新输入！'
             continue
 def loger(account,tran_date,shop,amount,interest,benxi,shengyuedu):
-    logfile='credit_card.log'
+    date = time.strftime('%Y_%m',time.localtime(time.time()))
+    logfile='credit_card_%s.log'%date
     f=file(logfile,'a')
     mess="%s %s %s %s %s %s %s"%(account,tran_date,shop,amount,interest,benxi,shengyuedu)
     f.write(mess+'\n')
