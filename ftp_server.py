@@ -31,7 +31,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
             if os.path.exists('/home/ftp/%s'%username): #判断用户目录是否存在
                 pass
             else:
-                os.mkdir('/home/ftp/%s'%username)
+                os.makedirs('/home/ftp/%s'%username)
             if status == 'normal':
                 f=file('/home/ftp/%s/%s.tmp'%(self.username,self.filename),'wb+')
                 while True:
@@ -219,13 +219,26 @@ class MySockServer(SocketServer.BaseRequestHandler):
             conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
             cur=conn.cursor()
             conn.select_db('ftp_server')
-            cur.execute('DELETE from user_info where name=%s')%username
+            cur.execute("DELETE from user_info where name='%s'"%username)
             conn.commit()
             cur.close()
             conn.close()
             return 'success'
         except MySQLdb.Error,e:
           print 'mysql error mes:',e
+    def user_list(self):
+        try:
+            conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
+            cur=conn.cursor()
+            conn.select_db('ftp_server')
+            cur.execute('select name from  user_info')
+            conn.commit()
+            result=cur.fetchall()
+            cur.close()
+            conn.close()
+            return result
+        except MySQLdb.Error,e:
+            print 'mysql error mes:',e
     def handle(self):
         print 'i have got a connection from ',self.client_address
         while True:
@@ -330,6 +343,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
                           #result=os.popen('ls -lh /home/ftp/%s'%username).read()
                           #result=os.popen("ls -lh /home/ftp/%s | grep -v '.tmp'"%username).read()
                           result=self.file_list(username)
+                          print result
                           a = PrettyTable(['序号','账户', '文件名称', '文件大小(bit)', '文件MD5值', '上传端IP','上传时间'])
                           result_len=len(result)
                           if result_len > 0:
@@ -412,14 +426,21 @@ class MySockServer(SocketServer.BaseRequestHandler):
                                  if userdel_result == 'success':
                                    self.request.send('success')
                           else:
-                              print '不存在 可以创建'
                               self.request.send('bucunzai')
-
+                      elif cmd=='userlist':
+                          result=self.user_list()
+                          print result
+                          a = PrettyTable(['序号','账号'])
+                          result_len=len(result)
+                          r=[]
+                          for i in range(result_len):
+                            a.add_row([i+1,str(result[i]).split("'")[1]])
+                          self.request.sendall(str(a))
 
             else:
                 print '用户验证错误！'
 if __name__ == '__main__':
     h='0.0.0.0'
-    p=8888
+    p=8889
     s=SocketServer.ThreadingTCPServer((h,p),MySockServer)
     s.serve_forever()

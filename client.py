@@ -14,8 +14,8 @@ import  hashlib
 import  time
 from hashlib import md5
 import getpass
-host='172.16.110.251'
-port=8888
+host='192.168.1.103'
+port=8889
 s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 s.connect((host,port))
 buffersize=4096
@@ -88,7 +88,7 @@ while True:
               4.删除文件:delete filename
               5.重命名文件:rename old_filename new_filename
               6.修改密码:repasswd newpasswd newpasswd_again
-              7.用户管理(仅限admin用户):user
+              7.用户管理(仅限管理员使用):user
               8.退出系统:quit
               '''
             print notice
@@ -161,7 +161,6 @@ while True:
                                     while True:
                                       data=f.read(buffersize)
                                       if not data:
-                                        print '没有数据了。。。'
                                         break
                                       s.send(data)
                                       f_size_weishangchuan = f_size_weishangchuan - len(data)
@@ -223,12 +222,13 @@ while True:
                      if os.path.exists('/home/ftp/%s'%username): #判断用户目录是否存在
                           pass
                      else:
-                          os.mkdir('/home/ftp/%s'%username)
+                          os.makedirs('/home/ftp/%s'%username)
                      result = ftp_down(username,user_cmd[1],file_check_result.strip().strip("'").strip('L'))
                      del file_check_result
                      if result == 'finish':
                         print '\n'
                         print '下载完成'
+                        print '%s已经下载至/home/ftp/%s'%(user_cmd[1],username)
                      else:
                         print '下载失败'
                   else:
@@ -289,10 +289,9 @@ while True:
                              欢迎使用用户管理系统:
                              1.增加用户: useradd username passwd passwd_again
                              2.删除用户: deluser username
-                             3.锁定用户: lock    username
-                             4.解锁用户：unlock  username
-                             5.返回上一层: back
-                             6.退出系统: quit
+                             3.列出所有账号：userlist
+                             4.返回上一层: back
+                             5.退出系统: quit
                 '''
                 if username.strip() == 'administrator':#检测是否为管理员
                    #s.sendall("%s %s %s %s %s"%(username,0,0,0,0))
@@ -306,14 +305,11 @@ while True:
                         print '请输入命令内容！！'
                         continue
                       user_cmd2=string2.split()
-                      print user_cmd2[0]
                       if user_cmd2[0] == 'useradd':
-                        print len(user_cmd2)
                         if len(user_cmd2) == 4:            
                           if user_cmd2[2] == user_cmd2[3] and len(user_cmd2[2]) >=6 and len(user_cmd2[3]) >=6:
                              user_cmd2[2]=hashlib.md5(user_cmd2[2]).hexdigest()
                              s.sendall("%s %s %s %s %s"%(username,user_cmd2[0],user_cmd2[1],user_cmd2[2],user_cmd2[2]))
-                             print '已发送'
                              username_check=repr(s.recv(1024)).strip("'")
                              if username_check == 'bucunzai':
                                 add_result=repr(s.recv(1024)).strip("'")
@@ -325,11 +321,9 @@ while True:
                                 print '用户名已存在'
                           else:
                              print '两次输入的新密码不一致或者用户名、密码长度不够6位！！' 
-                      if user_cmd2[0] == 'deluser':
-                         print len(user_cmd)
+                      elif user_cmd2[0] == 'deluser':
                          if len(user_cmd2) == 2:
-                            print '已发送'
-                            s.sendall("%s %s %s %s %s"%(username,user_cmd[0],0,0,0))
+                            s.sendall("%s %s %s %s %s"%(username,user_cmd2[0],user_cmd2[1],0,0))
                             username_check=repr(s.recv(1024)).strip("'")
                             if username_check == 'cunzai':
                                choose=raw_input("确定删除请输入'Y',输入其他取消删除：").strip()
@@ -341,6 +335,21 @@ while True:
                                       print '删除失败！！'
                                else:
                                  s.send('cancel')
+                            else:
+                                print '用户%s不存在'%user_cmd2[1]
+                      elif user_cmd2[0]=='userlist':
+                        s.sendall("%s %s %s %s %s"%(username,user_cmd2[0],0,0,0))
+                        result=s.recv(4096)
+                        os.system('clear')
+                        print '账户列表:'
+                        print result
+                      elif user_cmd2[0] == 'back':
+                          os.system('clear')
+                          break
+                      elif user_cmd2[0] == 'quit':
+                          sys.exit()
+                      else:
+                          print '命令不存在，请重新输入'
                 else:
                    print '对不起,您不是管理员'
                 
