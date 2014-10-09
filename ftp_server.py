@@ -144,18 +144,13 @@ class MySockServer(SocketServer.BaseRequestHandler):
             tmp=('%s'%username)
             cur.execute('select * from  ftp_info where name=%s',tmp)
             conn.commit()
-            result= cur.fetchall()
+            result=cur.fetchall()
             cur.close()
             conn.close()
             return result
         except MySQLdb.Error,e:
             print 'mysql error mes:',e
-    def user_check(self):
-        user_info_recived=self.request.recv(4096).strip() #将客户端输入的用户名和密码进行验证
-        if len(user_info_recived) == 0:
-           print 'Lost Connection from:',self.client_address
-        else:
-            username,passwd=user_info_recived.split()[:2] #防止用户名输入空格，产生影响，自动截取前两个元素
+    def user_check(self,username,passwd):#将客户端输入的用户名和密码进行验证
         try:
           conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
           cur=conn.cursor()
@@ -164,26 +159,95 @@ class MySockServer(SocketServer.BaseRequestHandler):
           result= cur.fetchall()
           tmp=[]
           for row in result:
-              tmp.append(row)
+            tmp.append(row)
           cur.close()
           conn.close()
-          return tmp
+          if len(tmp) >= 1:
+           return 'success'
+          else:
+           return 'error'
+        except MySQLdb.Error,e:
+          print 'mysql error mes:',e
+    def user_passwd_change(self,username,passwd):#将客户端输入的用户名和密码进行验证
+        try:
+          conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
+          cur=conn.cursor()
+          conn.select_db('ftp_server')
+          tmp=('%s'%passwd,'%s'%username,)
+          cur.execute('update user_info set passwd=%s where name=%s',tmp)
+          conn.commit()
+          cur.close()
+          conn.close()
+          return 'success'
+        except MySQLdb.Error,e:
+          print 'mysql error mes:',e
+    def user_exist_check(self,username): #for admin add or delete user
+      try:
+        conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
+        cur=conn.cursor()
+        conn.select_db('ftp_server')
+        print username
+        cur.execute("SELECT * FROM `user_info` where `name` ='%s'"%(username))
+        result= cur.fetchall()
+        tmp=[]
+        for row in result:
+            tmp.append(row)
+        cur.close()
+        conn.close()
+        if len(tmp) >= 1:
+           return 'cunzai'
+        else:
+           return 'bucunzai'
+      except MySQLdb.Error,e:
+         print 'mysql error mes:',e
+    def user_add(self,username,passwd): #for admin add or delete user
+        try:
+            conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
+            cur=conn.cursor()
+            conn.select_db('ftp_server')
+            date=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())) #get  time
+            tmp=('%s'%username,'%s'%passwd,'0')
+            cur.execute('insert into user_info value(null,%s,%s,%s)',tmp)
+            conn.commit()
+            cur.close()
+            conn.close()
+            return 'success'
+        except MySQLdb.Error,e:
+          print 'mysql error mes:',e
+    def user_delete(self,username): #for admin add or delete user
+        try:
+            conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
+            cur=conn.cursor()
+            conn.select_db('ftp_server')
+            cur.execute('DELETE from user_info where name=%s')%username
+            conn.commit()
+            cur.close()
+            conn.close()
+            return 'success'
         except MySQLdb.Error,e:
           print 'mysql error mes:',e
     def handle(self):
         print 'i have got a connection from ',self.client_address
         while True:
+            print 'wait for check username'
+            user_info_recived=self.request.recv(4096).strip()
             print 'check username start...'
-            result1=self.user_check()
-            self.request.send(str(result1))
-            print 'check username finish...'
-            if len(result1) == 1:
+            if len(user_info_recived) == 0:
+               print '验证过程失去连接:',self.client_address
+               result1='error'
+               break
+            else:
+                username,passwd=user_info_recived.split()[:2] #防止用户名输入空格，产生影响，自动截取前两个元素
+                result1=self.user_check(username,passwd)
+                self.request.send(str(result1))
+                print 'check username finish...'
+            if result1 is 'success':
                 while True: #循环接收命令
                   print '------------------wait for commands--------------'
                   cmd_recived=self.request.recv(4096).strip()
                   print cmd_recived
                   if len(cmd_recived) == 0:
-                      print 'Lost Connection from:',self.client_address
+                      print '命令过程失去连接：',self.client_address
                       break
                   else:
                       username,cmd,filename,filesize,filemd5=cmd_recived.split()
@@ -268,12 +332,14 @@ class MySockServer(SocketServer.BaseRequestHandler):
                           result=self.file_list(username)
                           a = PrettyTable(['序号','账户', '文件名称', '文件大小(bit)', '文件MD5值', '上传端IP','上传时间'])
                           result_len=len(result)
-                          for i in range(result_len):
-                            r=[]
-                            for t in result[i]:
-                                r.append(t)
-                            a.add_row([i+1,r[1],r[2],r[3],r[4],r[5],r[6]])
-                          print a
+                          if result_len > 0:
+                            for i in range(result_len):
+                              r=[]
+                              for t in result[i]:
+                                  r.append(t)
+                              a.add_row([i+1,r[1],r[2],r[3],r[4],r[5],r[6]])
+                          else:
+                             a.add_row(['None','None','None','None','None','None','None'])
                           self.request.sendall(str(a))
                       elif cmd=='get':
                           result=self.db_qurey_filename_check(username,filename)
@@ -303,7 +369,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
                                if not os.path.exists('/home/ftp/%s/%s'%(username,filename)) and del_result == 'success': #判断是否删除成功
                                    self.request.send('success')
                       elif cmd=='rename':
-                          new_filename=filesize
+                          new_filename=filesize  #客户端按照统一格式发送，新密码为上面定义的fileszie
                           result=self.db_qurey_filename_check(username,filename)
                           result2=self.db_qurey_filename_check(username,new_filename) #判断新文件名是否存在
                           if int(len(result))!=0 and int(len(result2)) ==0:
@@ -316,10 +382,42 @@ class MySockServer(SocketServer.BaseRequestHandler):
                                    self.request.send('success')
                           else:
                              self.request.send('null')
+                      elif cmd=='repasswd':
+                          new_passwd=filesize
+                          result=self.user_passwd_change(username,new_passwd)
+                          if int(len(result))!=0:
+                              print '修改成功'
+                              self.request.send('success')
+                          else:
+                              print '修改失败'
+                      elif cmd=='useradd':
+                          a_username=filename #想要添加的用户名
+                          a_passwd=filemd5#想要添加的密码
+                          user_exist_result=self.user_exist_check(a_username)
+                          if user_exist_result == 'cunzai':
+                              self.request.send('cunzai')
+                          else:
+                              print '不存在 可以创建'
+                              self.request.send('bucunzai')
+                              useradd_result=self.user_add(a_username,a_passwd)
+                              if useradd_result == 'success':
+                                self.request.send('success')
+                      elif cmd=='deluser':
+                          d_username=filename
+                          user_exist_result=self.user_exist_check(d_username)
+                          if user_exist_result == 'cunzai':
+                              self.request.send('cunzai')
+                              if self.request.recv(4096).strip() == 'yes':
+                                 userdel_result=self.user_delete(d_username)
+                                 if userdel_result == 'success':
+                                   self.request.send('success')
+                          else:
+                              print '不存在 可以创建'
+                              self.request.send('bucunzai')
+
+
             else:
                 print '用户验证错误！'
-
-
 if __name__ == '__main__':
     h='0.0.0.0'
     p=8888

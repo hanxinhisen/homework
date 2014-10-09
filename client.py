@@ -9,10 +9,12 @@
 from __future__ import division
 import  socket
 import  os
+import  sys
 import  hashlib
 import  time
 from hashlib import md5
-host='192.168.1.103'
+import getpass
+host='172.16.110.251'
 port=8888
 s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 s.connect((host,port))
@@ -61,7 +63,8 @@ def md5_file(filename):   #校验文件md5值
 while True:
     while True:
       username=raw_input('input your username:').strip()
-      password=raw_input('input your password:').strip()
+      #password=raw_input('input your password:').strip()
+      password=getpass.getpass('input your password:').strip()
       if len(username) >= 6 and len(password) >=6:
          break
       else:
@@ -71,9 +74,9 @@ while True:
     print '+++++++++++++++++++++++++++++++++++++'
     s.sendall("%s %s"%(username,password))
     print '-------------------------------------'
-    user_check_result=len(s.recv(1024))
-    if user_check_result > 2:
+    if repr(s.recv(1024)).strip("'") == 'success':
         print '验证成功'
+        print '欢迎\033[32;1m%s\033[0m登录该系统！'%username
         while True:
             notice='''
                欢迎使用FTP客户端系统
@@ -84,6 +87,9 @@ while True:
               3.列出所有文件:list
               4.删除文件:delete filename
               5.重命名文件:rename old_filename new_filename
+              6.修改密码:repasswd newpasswd newpasswd_again
+              7.用户管理(仅限admin用户):user
+              8.退出系统:quit
               '''
             print notice
             string=raw_input('input your command:').strip()
@@ -204,6 +210,7 @@ while True:
             elif user_cmd[0] =='list':
                     s.sendall("%s %s %s %s %s"%(username,user_cmd[0],0,0,0))
                     result=s.recv(4096)
+                    os.system('clear')
                     print '文件列表:'
                     print result
             ###################下载模块##########################
@@ -252,6 +259,7 @@ while True:
                   s.sendall("%s %s %s %s %s"%(username,user_cmd[0],user_cmd[1],user_cmd[2],0))
                   rename_check_result=repr(s.recv(1024)).strip("'")
                   if rename_check_result == 'exist':
+                    print '确定要把\033[32;1m%s\033[0m的文件名，改为\033[31;1m%s\033[0m吗'%(user_cmd[1],user_cmd[2])
                     choose=raw_input("确定重命名请输入'Y',输入其他取消重命名：").strip()
                     if choose.strip().upper() == 'Y':
                           s.send('yes')
@@ -259,10 +267,85 @@ while True:
                             print '重命名成功！！'
                           else:
                             print '重命名失败！！'
-                    else:
+                    else: 
+                          print '取消重命名！'
                           s.send('cancel')
                   elif rename_check_result == 'null':
                       print '旧文件名不存在或者新文件名已存在!!!'
+            elif user_cmd[0] == 'repasswd':
+                if len(user_cmd) == 3:            
+                  if user_cmd[1] == user_cmd[2] and len(user_cmd[1]) >=6:
+                        user_cmd[2]=hashlib.md5(user_cmd[2]).hexdigest()
+                        s.sendall("%s %s %s %s %s"%(username,user_cmd[0],user_cmd[2],user_cmd[2],0))
+                        if repr(s.recv(1024)).strip("'")== 'success':
+                            print '密码修改成功，请重新登录！'
+                            sys.exit()
+                        else:
+                            print '密码修改失败！'
+                  else:
+                    print '两次输入的新密码不一致或者密码长度不够6位！！'
+            elif user_cmd[0] == 'user':
+                notice ='''
+                             欢迎使用用户管理系统:
+                             1.增加用户: useradd username passwd passwd_again
+                             2.删除用户: deluser username
+                             3.锁定用户: lock    username
+                             4.解锁用户：unlock  username
+                             5.返回上一层: back
+                             6.退出系统: quit
+                '''
+                if username.strip() == 'administrator':#检测是否为管理员
+                   #s.sendall("%s %s %s %s %s"%(username,0,0,0,0))
+                   #admin_test=repr(s.recv(1024)).strip("'")== 'yes'
+                   print '欢迎管理员'
+                   os.system('clear')
+                   while True:
+                      print notice
+                      string2=raw_input('input your command:').strip()
+                      if len(string) == 0:
+                        print '请输入命令内容！！'
+                        continue
+                      user_cmd2=string2.split()
+                      print user_cmd2[0]
+                      if user_cmd2[0] == 'useradd':
+                        print len(user_cmd2)
+                        if len(user_cmd2) == 4:            
+                          if user_cmd2[2] == user_cmd2[3] and len(user_cmd2[2]) >=6 and len(user_cmd2[3]) >=6:
+                             user_cmd2[2]=hashlib.md5(user_cmd2[2]).hexdigest()
+                             s.sendall("%s %s %s %s %s"%(username,user_cmd2[0],user_cmd2[1],user_cmd2[2],user_cmd2[2]))
+                             print '已发送'
+                             username_check=repr(s.recv(1024)).strip("'")
+                             if username_check == 'bucunzai':
+                                add_result=repr(s.recv(1024)).strip("'")
+                                if add_result == 'success':
+                                   print '添加用户名%s成功'%user_cmd2[1]
+                                else:
+                                   print '添加用户名%s失败'%user_cmd2[1]
+                             else:
+                                print '用户名已存在'
+                          else:
+                             print '两次输入的新密码不一致或者用户名、密码长度不够6位！！' 
+                      if user_cmd2[0] == 'deluser':
+                         print len(user_cmd)
+                         if len(user_cmd2) == 2:
+                            print '已发送'
+                            s.sendall("%s %s %s %s %s"%(username,user_cmd[0],0,0,0))
+                            username_check=repr(s.recv(1024)).strip("'")
+                            if username_check == 'cunzai':
+                               choose=raw_input("确定删除请输入'Y',输入其他取消删除：").strip()
+                               if choose.strip().upper() == 'Y':
+                                  s.send('yes')
+                                  if repr(s.recv(1024)).strip("'")== 'success':
+                                      print '删除成功！！'
+                                  else:
+                                      print '删除失败！！'
+                               else:
+                                 s.send('cancel')
+                else:
+                   print '对不起,您不是管理员'
+                
+            elif user_cmd[0] =='quit':
+                sys.exit()
             else:
                 print '命令不存在，请重新输入！！'
                 continue
