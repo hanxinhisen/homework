@@ -1,3 +1,10 @@
+运行环境：
+    1.客户端需要更改server的IP地址（11行）
+    2.服务器端：
+      ①.创建ftp_server_hx数据库
+      ②.source 导入 ftp_server_hx.sql
+      ③.需要安装PrettyTable
+    3.最好在root账户下运行这两个脚本
 一.登陆系统
    1.用户分普通用户和管理员用户。
    2.普通用户:hanxin 密码:123456。

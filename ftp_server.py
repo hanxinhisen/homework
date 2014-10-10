@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 #coding:utf-8
-#0928 finally
-#0929 finally add get file
-#0930 finally add xiazai jindutiao
-#1002 finally add delete
-#1003 finall add rename
 import SocketServer
 import os
 import time
@@ -70,7 +65,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
       try:
         conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
         cur=conn.cursor()
-        conn.select_db('ftp_server')
+        conn.select_db('ftp_server_hx')
         cur.execute("SELECT * FROM `ftp_info` where `name` ='%s' and  `filemd5` = '%s'"%(username,md5))
         result= cur.fetchall()
         tmp=[]
@@ -85,7 +80,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
       try:
         conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
         cur=conn.cursor()
-        conn.select_db('ftp_server')
+        conn.select_db('ftp_server_hx')
         cur.execute("SELECT * FROM `ftp_info` where `name` ='%s' and  `filename` = '%s'"%(username,filename))
         result= cur.fetchall()
         tmp=[]
@@ -100,7 +95,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
         try:
             conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
             cur=conn.cursor()
-            conn.select_db('ftp_server')
+            conn.select_db('ftp_server_hx')
             date=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())) #get  time
             tmp=('%s'%username,'%s'%filename,'%s'%filesize,'%s'%filemd5,'%s'%ip,'%s'%date)
             cur.execute('insert into ftp_info value(null,%s,%s,%s,%s,%s,%s)',tmp)
@@ -114,7 +109,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
         try:
             conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
             cur=conn.cursor()
-            conn.select_db('ftp_server')
+            conn.select_db('ftp_server_hx')
             tmp=('%s'%username,'%s'%filename)
             cur.execute('delete from ftp_info where name=%s and filename=%s',tmp)
             conn.commit()
@@ -127,7 +122,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
         try:
             conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
             cur=conn.cursor()
-            conn.select_db('ftp_server')
+            conn.select_db('ftp_server_hx')
             tmp=('%s'%newfilename,'%s'%username,'%s'%filename)
             cur.execute('update ftp_info set filename=%s where name=%s and filename=%s',tmp)
             conn.commit()
@@ -140,7 +135,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
         try:
             conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
             cur=conn.cursor()
-            conn.select_db('ftp_server')
+            conn.select_db('ftp_server_hx')
             tmp=('%s'%username)
             cur.execute('select * from  ftp_info where name=%s',tmp)
             conn.commit()
@@ -154,7 +149,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
         try:
           conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
           cur=conn.cursor()
-          conn.select_db('ftp_server')
+          conn.select_db('ftp_server_hx')
           cur.execute("SELECT * FROM `user_info` where `name` ='%s' and  `passwd` = '%s'"%(username,passwd))
           result= cur.fetchall()
           tmp=[]
@@ -172,7 +167,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
         try:
           conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
           cur=conn.cursor()
-          conn.select_db('ftp_server')
+          conn.select_db('ftp_server_hx')
           tmp=('%s'%passwd,'%s'%username,)
           cur.execute('update user_info set passwd=%s where name=%s',tmp)
           conn.commit()
@@ -185,7 +180,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
       try:
         conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
         cur=conn.cursor()
-        conn.select_db('ftp_server')
+        conn.select_db('ftp_server_hx')
         print username
         cur.execute("SELECT * FROM `user_info` where `name` ='%s'"%(username))
         result= cur.fetchall()
@@ -204,7 +199,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
         try:
             conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
             cur=conn.cursor()
-            conn.select_db('ftp_server')
+            conn.select_db('ftp_server_hx')
             date=time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())) #get  time
             tmp=('%s'%username,'%s'%passwd,'0')
             cur.execute('insert into user_info value(null,%s,%s,%s)',tmp)
@@ -218,7 +213,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
         try:
             conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
             cur=conn.cursor()
-            conn.select_db('ftp_server')
+            conn.select_db('ftp_server_hx')
             cur.execute("DELETE from user_info where name='%s'"%username)
             conn.commit()
             cur.close()
@@ -230,7 +225,7 @@ class MySockServer(SocketServer.BaseRequestHandler):
         try:
             conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
             cur=conn.cursor()
-            conn.select_db('ftp_server')
+            conn.select_db('ftp_server_hx')
             cur.execute('select name from  user_info')
             conn.commit()
             result=cur.fetchall()

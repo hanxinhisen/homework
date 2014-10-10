@@ -1,11 +1,5 @@
 #!/usr/bin/python
 #coding:utf-8
-#For FTP client
-#0928 finally 
-#0929 finally add get file
-#0930 finally add xiazai jindutiao
-#1002 finally add delete 
-#1003 finall add rename 
 from __future__ import division
 import  socket
 import  os
