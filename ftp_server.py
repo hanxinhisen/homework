@@ -181,7 +181,6 @@ class MySockServer(SocketServer.BaseRequestHandler):
         conn=MySQLdb.connect(host='localhost',user='root',passwd='123456',port=3306)
         cur=conn.cursor()
         conn.select_db('ftp_server_hx')
-        print username
         cur.execute("SELECT * FROM `user_info` where `name` ='%s'"%(username))
         result= cur.fetchall()
         tmp=[]
@@ -319,7 +318,6 @@ class MySockServer(SocketServer.BaseRequestHandler):
                                 write_to_file=self.ftp_down(username,filename,int(filesize),status,finish_size)
                                 if write_to_file == 'finish':
                                   os.rename('/home/ftp/%s/%s.tmp'%(username,filename),'/home/ftp/%s/%s'%(username,filename))
-                                  print 'tmp rename'
                                   if self.md5_file('/home/ftp/%s/%s'%(username,filename)) == filemd5: ###判断接收到的文件md5是否与源文件相同
                                       insert_result=self.db_insert_fileinfo(username,filename,filesize,filemd5,self.client_address[0])
                                       if insert_result == 'success': #判断信息是否插入成功
@@ -338,7 +336,6 @@ class MySockServer(SocketServer.BaseRequestHandler):
                           #result=os.popen('ls -lh /home/ftp/%s'%username).read()
                           #result=os.popen("ls -lh /home/ftp/%s | grep -v '.tmp'"%username).read()
                           result=self.file_list(username)
-                          print result
                           a = PrettyTable(['序号','账户', '文件名称', '文件大小(bit)', '文件MD5值', '上传端IP','上传时间'])
                           result_len=len(result)
                           if result_len > 0:
@@ -406,7 +403,6 @@ class MySockServer(SocketServer.BaseRequestHandler):
                           if user_exist_result == 'cunzai':
                               self.request.send('cunzai')
                           else:
-                              print '不存在 可以创建'
                               self.request.send('bucunzai')
                               useradd_result=self.user_add(a_username,a_passwd)
                               if useradd_result == 'success':
@@ -424,7 +420,6 @@ class MySockServer(SocketServer.BaseRequestHandler):
                               self.request.send('bucunzai')
                       elif cmd=='userlist':
                           result=self.user_list()
-                          print result
                           a = PrettyTable(['序号','账号'])
                           result_len=len(result)
                           r=[]

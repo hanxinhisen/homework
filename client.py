@@ -1,5 +1,6 @@
 #!/usr/bin/python
 #coding:utf-8
+#For FTP client
 from __future__ import division
 import  socket
 import  os
@@ -8,14 +9,14 @@ import  hashlib
 import  time
 from hashlib import md5
 import getpass
-host='172.16.110.251'
+host='192.168.1.107'
 port=8889
 s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 s.connect((host,port))
 buffersize=4096
 def ftp_down(username,filename,msg_length):  #for get down file
             f=file('/home/ftp/%s/%s'%(username,filename),'wb+')
-            print msg_length
+            print '文件大小:',msg_length+'字节'
             filesize=msg_length
             while True:
                 if msg_length > 4096:
@@ -55,6 +56,7 @@ while True:
     password=hashlib.md5(password).hexdigest()
     s.sendall("%s %s"%(username,password))
     if repr(s.recv(1024)).strip("'") == 'success':
+        os.system('clear')
         print '验证成功'
         print '欢迎\033[32;1m%s\033[0m登录该系统！'%username
         while True:
@@ -158,6 +160,7 @@ while True:
                                   f.close()
                                   print '\n' 
                           if len(s.recv(1024)) == 6:   #如果上传完成,server端会发送'finish'字符串，可以判断长度继而判断上传与否
+                             os.system('clear')
                              time2=time.time()
                              print '上传成功，本次上传消耗\033[31;1m%s\033[0m秒'%(time2 - time1)
                              break
@@ -170,7 +173,8 @@ while True:
                           print '------------------------------'
                           break
                   except (IOError,OSError),e:
-                        print '输入的文件名错误,请检查,可能是当前目录下%s不存在'%user_cmd[1]
+                        os.system('clear')
+                        print '输入的文件名错误,请检查,可能是当前目录下 %s \033[31;1;5m 不存在 \033[0m'%user_cmd[1]
                         continue
                 else:
                             os.system('clear')
@@ -193,15 +197,20 @@ while True:
                           pass
                      else:
                           os.makedirs('/home/ftp/%s'%username)
+                     time1=time.time()
                      result = ftp_down(username,user_cmd[1],file_check_result.strip().strip("'").strip('L'))
                      del file_check_result
                      if result == 'finish':
                         print '\n'
-                        print '下载完成'
+                        os.system('clear')
+                        time2=time.time()
+                        print '下载完成,本次下载消耗\033[31;1m%s\033[0m秒'%(time2 - time1)
                         print '%s已经下载至/home/ftp/%s'%(user_cmd[1],username)
                      else:
+                        os.system('clear')
                         print '下载失败'
                   else:
+                      os.system('clear')
                       print '文件不存在'
                 else:
                             os.system('clear')
@@ -216,12 +225,14 @@ while True:
                      if choose.strip().upper() == 'Y':
                         s.send('yes')
                         if repr(s.recv(1024)).strip("'")== 'success':
+                           os.system('clear')
                            print '删除成功！！'
                         else:
                            print '删除失败！！'
                      else:
                         s.send('cancel')
                   elif file_check_result == 'null':
+                      os.system('clear')
                       print '将要删除的文件不存在!!!'
                 else:
                             os.system('clear')
@@ -236,13 +247,17 @@ while True:
                     if choose.strip().upper() == 'Y':
                           s.send('yes')
                           if repr(s.recv(1024)).strip("'")== 'success':
+                            os.system('clear')
                             print '重命名成功！！'
                           else:
+                            os.system('clear')
                             print '重命名失败！！'
                     else: 
+                          os.system('clear')
                           print '取消重命名！'
                           s.send('cancel')
                   elif rename_check_result == 'null':
+                      os.system('clear')
                       print '旧文件名不存在或者新文件名已存在!!!'
                 else:
                             os.system('clear')
@@ -256,8 +271,10 @@ while True:
                             print '密码修改成功，请重新登录！'
                             sys.exit()
                         else:
+                            os.system('clear')
                             print '密码修改失败！'
                   else:
+                    os.system('clear')
                     print '两次输入的新密码不一致或者密码长度不够6位！！'
                 else:
                             os.system('clear')
@@ -272,8 +289,8 @@ while True:
                              5.退出系统: quit
                 '''
                 if username.strip() == 'administrator':#检测是否为管理员
-                   print '欢迎管理员'
                    os.system('clear')
+                   print '欢迎管理员'
                    while True:
                       print notice
                       string2=raw_input('input your command:').strip()
@@ -290,12 +307,16 @@ while True:
                              if username_check == 'bucunzai':
                                 add_result=repr(s.recv(1024)).strip("'")
                                 if add_result == 'success':
+                                   os.system('clear')
                                    print '添加用户名%s成功'%user_cmd2[1]
                                 else:
+                                   os.system('clear')
                                    print '添加用户名%s失败'%user_cmd2[1]
                              else:
+                                os.system('clear')
                                 print '用户名已存在'
                           else:
+                             os.system('clear')
                              print '两次输入的新密码不一致或者用户名、密码长度不够6位！！' 
                         else:
                             os.system('clear')
@@ -309,12 +330,16 @@ while True:
                                if choose.strip().upper() == 'Y':
                                   s.send('yes')
                                   if repr(s.recv(1024)).strip("'")== 'success':
+                                      os.system('clear')
                                       print '删除成功！！'
                                   else:
+                                      os.system('clear')
                                       print '删除失败！！'
                                else:
+                                 os.system('clear')
                                  s.send('cancel')
                             else:
+                                os.system('clear')
                                 print '用户%s不存在'%user_cmd2[1]
                          else:
                             os.system('clear')
