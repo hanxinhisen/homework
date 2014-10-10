@@ -14,23 +14,12 @@ import  hashlib
 import  time
 from hashlib import md5
 import getpass
-host='192.168.1.103'
+host='172.16.110.251'
 port=8889
 s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 s.connect((host,port))
 buffersize=4096
-def recv_all(obj,msg_length ):
-    raw_result = ''
-    while msg_length != 0:
-        if msg_length <= 4096:
-            data= obj.recv(msg_length)
-            msg_length =0
-        else:
-            data= obj.recv(4096)
-            msg_length -= 4096
-        raw_result += data
-    return raw_result
-def ftp_down(username,filename,msg_length):
+def ftp_down(username,filename,msg_length):  #for get down file
             f=file('/home/ftp/%s/%s'%(username,filename),'wb+')
             print msg_length
             filesize=msg_length
@@ -63,7 +52,6 @@ def md5_file(filename):   #校验文件md5值
 while True:
     while True:
       username=raw_input('input your username:').strip()
-      #password=raw_input('input your password:').strip()
       password=getpass.getpass('input your password:').strip()
       if len(username) >= 6 and len(password) >=6:
          break
@@ -71,9 +59,7 @@ while True:
          print '用户名或密码长度至少为6位！'
     ###验证用户名密码
     password=hashlib.md5(password).hexdigest()
-    print '+++++++++++++++++++++++++++++++++++++'
     s.sendall("%s %s"%(username,password))
-    print '-------------------------------------'
     if repr(s.recv(1024)).strip("'") == 'success':
         print '验证成功'
         print '欢迎\033[32;1m%s\033[0m登录该系统！'%username
@@ -94,7 +80,8 @@ while True:
             print notice
             string=raw_input('input your command:').strip()
             if len(string) == 0:
-               print '请输入命令内容！！'
+               os.system('clear')
+               print '\033[31;1m 请输入内容 \033[0m'
                continue
             user_cmd=string.split()
             ###################上传模块###########################
@@ -106,29 +93,17 @@ while True:
                     s.sendall("%s %s %s %s %s"%(username,user_cmd[0],user_cmd[1],f_size,f_md5))
                     while True:
                       md5_check_result=s.recv(1024)
-                      print md5_check_result
-                      #tmp=repr(md5_check_result)
-                      #md5_check_result=len(md5_check_result)
-                      #print md5_check_result
-                      print '++++++++++++++++++++++++++++++++'
-                      #print tmp.split(',')[4].strip().strip("'")
-                      print '++++++++++++++++++++++++++++++++'
-                      print md5_check_result
-                      print '++++++++++++++++++++++++++++++++++'
                       if md5_check_result=='null': #当数据库中没有该文件的md5值，所以查询返回结果为空列表，如果不为空返回来存在的记录，判断用户名即可
-                          s.sendall('duandian_request')#发送请求是否可以断点续传
+                          s.sendall('duandian_request')#发送请求判断是否可以断点续传
                           duandian_check_result=repr(s.recv(1024)).strip("'")
-                          print '----------------duandian_check_result----------------'
-                          print duandian_check_result
-                          print '----------------duandian_check_result----------------'
-                          if duandian_check_result == 'keduandian':
+                          if duandian_check_result == 'keduandian': #如果服务器端，返回可续传，则询问是否续传
                             status='run'
                             while status is 'run':
                               choice=raw_input('当前任务可断点上传,请选择1(重新上传)或者2(断点续传)：').strip()
                               if choice == '1':
                                   print '选择了重新上传'
-                                  s.sendall('redo')
-                                  print '正在重新发送。。。'
+                                  s.sendall('redo')                   #选择redo后，服务器端会发送start指令，客户端执行上传
+                                  print '正在重新执行发送任务。。。'
                                   if repr(s.recv(1024)).strip("'") == 'start':
                                     f=file(user_cmd[1],'rb')
                                     f_size_shishi = f_size
@@ -149,11 +124,9 @@ while True:
                               elif choice == '2':
                                   print '选择了续传'
                                   s.sendall('xuchuan')
-                                  print '已发送续传请求'
                                   if repr(s.recv(1024)).strip("'") == 'start':
                                     file_already_upload=repr(s.recv(1024)).strip("'")
-                                    print '正在断点发送。。。'
-                                    print file_already_upload
+                                    print '正在断点续传。。。'
                                     f=file(user_cmd[1],'rb')
                                     f_size_weishangchuan = f_size - int(file_already_upload)
                                     time1=time.time()
@@ -203,8 +176,11 @@ while True:
                           print '------------------------------'
                           break
                   except (IOError,OSError),e:
-                        print '输入的文件名错误,请检查',e
+                        print '输入的文件名错误,请检查,可能是当前目录下%s不存在'%user_cmd[1]
                         continue
+                else:
+                            os.system('clear')
+                            print '请参照示例'
             ###################列表模块##########################
             elif user_cmd[0] =='list':
                     s.sendall("%s %s %s %s %s"%(username,user_cmd[0],0,0,0))
@@ -233,15 +209,14 @@ while True:
                         print '下载失败'
                   else:
                       print '文件不存在'
+                else:
+                            os.system('clear')
+                            print '请参照示例'
     ###################删除模块########################## 
             elif user_cmd[0] =='delete':
                 if len(user_cmd) == 2:
                   s.sendall("%s %s %s %s %s"%(username,user_cmd[0],user_cmd[1],0,0))                 
                   file_check_result=repr(s.recv(1024)).strip("'")
-                  print '----------------------------'
-                  print file_check_result
-                  print type(file_check_result)
-                  print '----------------------------'
                   if file_check_result == 'exist':
                      choose=raw_input("确定删除请输入'Y',输入其他取消删除：").strip()
                      if choose.strip().upper() == 'Y':
@@ -254,6 +229,9 @@ while True:
                         s.send('cancel')
                   elif file_check_result == 'null':
                       print '将要删除的文件不存在!!!'
+                else:
+                            os.system('clear')
+                            print '请参照示例'
             elif user_cmd[0] =='rename':
                 if len(user_cmd) == 3:
                   s.sendall("%s %s %s %s %s"%(username,user_cmd[0],user_cmd[1],user_cmd[2],0))
@@ -272,6 +250,9 @@ while True:
                           s.send('cancel')
                   elif rename_check_result == 'null':
                       print '旧文件名不存在或者新文件名已存在!!!'
+                else:
+                            os.system('clear')
+                            print '请参照示例'
             elif user_cmd[0] == 'repasswd':
                 if len(user_cmd) == 3:            
                   if user_cmd[1] == user_cmd[2] and len(user_cmd[1]) >=6:
@@ -284,6 +265,9 @@ while True:
                             print '密码修改失败！'
                   else:
                     print '两次输入的新密码不一致或者密码长度不够6位！！'
+                else:
+                            os.system('clear')
+                            print '请参照示例'
             elif user_cmd[0] == 'user':
                 notice ='''
                              欢迎使用用户管理系统:
@@ -294,8 +278,6 @@ while True:
                              5.退出系统: quit
                 '''
                 if username.strip() == 'administrator':#检测是否为管理员
-                   #s.sendall("%s %s %s %s %s"%(username,0,0,0,0))
-                   #admin_test=repr(s.recv(1024)).strip("'")== 'yes'
                    print '欢迎管理员'
                    os.system('clear')
                    while True:
@@ -321,6 +303,9 @@ while True:
                                 print '用户名已存在'
                           else:
                              print '两次输入的新密码不一致或者用户名、密码长度不够6位！！' 
+                        else:
+                            os.system('clear')
+                            print '请参照示例'
                       elif user_cmd2[0] == 'deluser':
                          if len(user_cmd2) == 2:
                             s.sendall("%s %s %s %s %s"%(username,user_cmd2[0],user_cmd2[1],0,0))
@@ -337,6 +322,9 @@ while True:
                                  s.send('cancel')
                             else:
                                 print '用户%s不存在'%user_cmd2[1]
+                         else:
+                            os.system('clear')
+                            print '请参照示例'
                       elif user_cmd2[0]=='userlist':
                         s.sendall("%s %s %s %s %s"%(username,user_cmd2[0],0,0,0))
                         result=s.recv(4096)
@@ -349,14 +337,17 @@ while True:
                       elif user_cmd2[0] == 'quit':
                           sys.exit()
                       else:
-                          print '命令不存在，请重新输入'
+                          os.system('clear')
+                          print '\033[31;1m 命令不存在，请重新输入 \033[0m'
                 else:
-                   print '对不起,您不是管理员'
+                   os.system('clear')
+                   print '\033[31;1m 对不起，您不是管理员 \033[0m'
                 
             elif user_cmd[0] =='quit':
                 sys.exit()
             else:
-                print '命令不存在，请重新输入！！'
+                os.system('clear')
+                print '\033[31;1m 命令不存在，请重新输入 \033[0m'
                 continue
          
     else:
