@@ -50,7 +50,7 @@ def posix_shell(chan,django_loginuser,hostname):
                 try:
                     x = chan.recv(1024)
                     if len(x) == 0:
-                        print '\r\n*** EOF\r\n',
+                        print '\r\n退出登陆\r\n',
                         break
                     sys.stdout.write(x)
                     sys.stdout.flush()
