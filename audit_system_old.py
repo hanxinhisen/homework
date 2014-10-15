@@ -14,7 +14,7 @@ import paramiko
 import os
 def user_check(username,passwd):#将客户端输入的用户名和密码进行验证
     try:
-      conn=MySQLdb.connect(host='172.16.110.251',user='root',passwd='123456',port=3306)
+      conn=MySQLdb.connect(host='192.168.1.107',user='root',passwd='123456',port=3306)
       cur=conn.cursor()
       conn.select_db('audit_server_hx')
       cur.execute("SELECT * FROM `user_info` where `name` ='%s' and  `password` = '%s'"%(username,passwd))
@@ -32,7 +32,7 @@ def user_check(username,passwd):#将客户端输入的用户名和密码进行�
       print 'mysql error mes:',e
 def host_list(username):
     try:
-      conn=MySQLdb.connect(host='172.16.110.251',user='root',passwd='123456',port=3306)
+      conn=MySQLdb.connect(host='192.168.1.107',user='root',passwd='123456',port=3306)
       cur=conn.cursor()
       conn.select_db('audit_server_hx')
       cur.execute("select s.host_name,s.host_ip,s.`user`,s.`password`,s.`port`,g.group_name from user_info u, server_info s,server_group g where u.server_group = s.group_id and  s.group_id = g.group_id and u.name  = '%s';"%username)
