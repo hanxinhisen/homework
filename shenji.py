@@ -13,7 +13,7 @@ import paramiko
 import os
 def user_check(username,passwd):#将客户端输入的用户名和密码进行验证
     try:
-      conn=MySQLdb.connect(host='172.16.110.251',user='root',passwd='123456',port=3306)
+      conn=MySQLdb.connect(host='192.168.1.107',user='root',passwd='123456',port=3306)
       cur=conn.cursor()
       conn.select_db('audit_server_hx')
       cur.execute("SELECT * FROM `user_info` where `name` ='%s' and  `password` = '%s'"%(username,passwd))
@@ -31,7 +31,7 @@ def user_check(username,passwd):#将客户端输入的用户名和密码进行�
       print 'mysql error mes:',e
 def host_list(username):
     try:
-      conn=MySQLdb.connect(host='172.16.110.251',user='root',passwd='123456',port=3306)
+      conn=MySQLdb.connect(host='192.168.1.107',user='root',passwd='123456',port=3306)
       cur=conn.cursor()
       conn.select_db('audit_server_hx')
       cur.execute("select s.host_name,s.host_ip,s.`user`,s.`password`,s.`port`,g.group_name from user_info u, server_info s,server_group g where u.server_group = s.group_id and  s.group_id = g.group_id and u.name  = '%s';"%username)
@@ -58,24 +58,38 @@ def ssh_run(host_info,cmd):
         print line,
     #print stdout.read(),stderr.read()
     s.close()
-def put_file(host_info,localfile,remotefile):
+def put_file(host_info,localfile):
     ip,username,password,port = host_info
     t = paramiko.Transport((ip,int(port)))
     t.connect(username=username, password=password)
     sftp = paramiko.SFTPClient.from_transport(t)
     #sftp.get('/tmp/sunlogin_linux_v1.0.0.25020_beta.tar.gz', '/tmp/file_from_hanxin.gz')
-    sftp.put('%s'%localfile, '%s'%remotefile)
+    try:
+      time1=time.time()
+      sftp.put('%s'%localfile, '/tmp/from_audit_system_%s'%localfile.split('/')[-1])
+      time2=time.time()
+      print '本次上传消耗\033[32;1m%s\033[0m秒'%(time2-time1)
+    except paramiko:
+        print '服务器连接失败'
+    except OSError:
+        print '文件可能不存在！！'
     t.close()
-def get_file(host_info,localfile,remotefile):
-    print   remotefile.split('/')[-1]
-    #print type(remotefile)
-    #print remotefile
+def get_file(host_info,remotefile):
     ip,username,password,port = host_info
     t = paramiko.Transport((ip,int(port)))
     t.connect(username=username, password=password)
+
     sftp = paramiko.SFTPClient.from_transport(t)
-    sftp.get('%s'%remotefile, '/tmp/%s_from_%s'%(remotefile.split('/')[-1],ip))
-    t.close()
+
+    try:
+       time1=time.time()
+       sftp.get('%s'%remotefile, '/tmp/%s_from_%s'%(remotefile.split('/')[-1],ip))
+       time2=time.time()
+       print '从%s下载%s完成，共消耗%s秒'%(ip,remotefile.split('/')[-1],time2-time1)
+    except IOError:
+       print '%s上没有%s，已跳过。'%(ip,remotefile.split('/')[-1])
+    finally:
+       t.close()
 #############
 while True:
     notice='''
@@ -194,69 +208,126 @@ while True:
                 for res in result_list:
                    res.get()
 
-        elif choose  == '4':
-            #print '您可文件操作的服务器组是\033[32;1m%s\033[0m组'%(server_group)
-            #print '正在获取您可文件操作的服务器和服务器的当前连接状态...'
-            #a = PrettyTable(['服务器名','服务器ip','当前状态','组名称'])
-            #offline_list=[]   #获取不能ping通的服务器
-            #for n,ip in print_list.items():
-            #      status=commands.getstatusoutput('ping -c 1 -w 1 %s'%ip)
-            #      if status[0] is 0:
-            #        a.add_row([n,ip,'online',server_group])
-            #      else:
-            #        a.add_row([n,ip,'offline',server_group])
-            #        offline_list.append(n)
-            #print '您可文件操作的服务器列表如下:'
-            #print a
-            #try:
-            #    host = raw_input('请选择您要登陆的服务器名:').strip()
-            #    if host == 'quit':
-            #        print "Goodbye!"
-            #        break
-            #except KeyboardInterrupt:continue
-            #except EOFError:continue
-            #if len(host) ==0 or not server_list.has_key(host):
-            #    print '你输入的服务器名称为\033[031;1m%s\033[0m,此服务器名不存在，或者您无权登陆！'%host
-            #    continue
-            #if host in offline_list:
-            #    choose2=raw_input('您选择的服务器状态为offline,可能无法连接,是否继续(y)?').strip()
-            #    if choose2.upper() == 'Y':
-                   p = Pool(processes=5)
-                   host_info=ip_list
-                   local_file='/tmp/172.16.110.251.log'
-                   remote_file='/tmp/172.16.110.251.log'
-                   for h in  host_info:
-                       status=commands.getstatusoutput('ping -c 1 -w 1 %s'%h[0])
-                       if status[0] is 0:
-                         p.apply(put_file, [h,local_file,remote_file])
-                         print '已经传输',h
-                       else:
-                          print "%s 无法连接,跳过该服务器"%h[0]
-                          continue
-                   p.close()
-                   p.join()
-           #    else:
-           #        print '放弃传输！'
-           #else:
-           #   print '\033[32;1mGoing to connect \033[0m', server_list[host][0]
-           #   os.system("python demo.py %s %s  %s  %s %s" % (server_list[host][0],server_list[host][1],server_list[host][2],server_list[host][3],username))
-           #   os.system('clear')
+        elif choose  == '3':
+            print '您可文件操作的服务器组是\033[32;1m%s\033[0m组'%(server_group)
+            print '正在获取您可文件操作的服务器和服务器的当前连接状态...'
+            a = PrettyTable(['服务器名','服务器ip','当前状态','组名称'])
+            offline_list=[]   #获取不能ping通的服务器
+            for n,ip in print_list.items():
+                  status=commands.getstatusoutput('ping -c 1 -w 1 %s'%ip)
+                  if status[0] is 0:
+                    a.add_row([n,ip,'online',server_group])
+                  else:
+                    a.add_row([n,ip,'offline',server_group])
+                    offline_list.append(n)
+            print '您可文件操作的服务器列表如下:'
+            print a
+
+            try:
+                host = raw_input('请选择您要登陆的服务器名:').strip()
+                if host == 'quit':
+                    print "Goodbye!"
+                    break
+            except KeyboardInterrupt:continue
+            except EOFError:continue
+
+            if len(host) ==0 or not server_list.has_key(host):
+                print '你输入的服务器名称为\033[031;1m%s\033[0m,此服务器名不存在，或者您无权登陆！'%host
+                continue
+            h=server_list[host][0],server_list[host][1],server_list[host][2],server_list[host][3]
+            if host in offline_list:
+                choose2=raw_input('您选择的服务器状态为offline,可能无法连接,是否继续(y)?').strip()
+
+                if choose2.upper() == 'Y':
+                   while True:
+                      local_file=raw_input('请输入本地服务器文件名(如:/tmp/test.file):').strip()
+                      if local_file == 'quit':break
+                      put_file(h,local_file)
+                else:
+                   print '放弃传输！'
+            else:
+               while True:
+                      local_file=raw_input('请输入本地服务器文件名(如:/tmp/test.file):').strip()
+                      if local_file == 'quit':break
+                      put_file(h,local_file)
+        elif choose == '4':
+            p = Pool(processes=5)
+            host_info=ip_list
+            while True:
+                local_file=raw_input('请输入远程服务器文件名(如:/tmp/test.file):').strip()
+                #if os.path.exists('%s'%local_file): #判断用户目录是否存在
+                #    break
+                #else:
+                #    print '%s不存在'%local_file
+                #    continue
+                if local_file == 'quit':break
+                for h in  host_info:
+                    status=commands.getstatusoutput('ping -c 1 -w 1 %s'%h[0])
+                    if status[0] is 0:
+                      p.apply(put_file, [h,local_file])
+                    else:
+                       print "%s 无法连接,跳过该服务器"%h[0]
+                       continue
+        elif choose  == '5':
+            print '您可文件操作的服务器组是\033[32;1m%s\033[0m组'%(server_group)
+            print '正在获取您可文件操作的服务器和服务器的当前连接状态...'
+            a = PrettyTable(['服务器名','服务器ip','当前状态','组名称'])
+            offline_list=[]   #获取不能ping通的服务器
+            for n,ip in print_list.items():
+                  status=commands.getstatusoutput('ping -c 1 -w 1 %s'%ip)
+                  if status[0] is 0:
+                    a.add_row([n,ip,'online',server_group])
+                  else:
+                    a.add_row([n,ip,'offline',server_group])
+                    offline_list.append(n)
+            print '您可文件操作的服务器列表如下:'
+            print a
+
+            try:
+                host = raw_input('请选择您要登陆的服务器名:').strip()
+                if host == 'quit':
+                    print "Goodbye!"
+                    break
+            except KeyboardInterrupt:continue
+            except EOFError:continue
+
+            if len(host) ==0 or not server_list.has_key(host):
+                print '你输入的服务器名称为\033[031;1m%s\033[0m,此服务器名不存在，或者您无权登陆！'%host
+                continue
+            h=server_list[host][0],server_list[host][1],server_list[host][2],server_list[host][3]
+            if host in offline_list:
+                choose2=raw_input('您选择的服务器状态为offline,可能无法连接,是否继续(y)?').strip()
+
+                if choose2.upper() == 'Y':
+                   while True:
+                      remote_file=raw_input('请输入本地服务器文件名(如:/tmp/test.file):').strip()
+                      if remote_file == 'quit':break
+                      put_file(h,remote_file)
+                else:
+                   print '放弃传输！'
+            else:
+               while True:
+                      remote_file=raw_input('请输入本地服务器文件名(如:/tmp/test.file):').strip()
+                      if remote_file == 'quit':break
+                      get_file(h,remote_file)
         elif choose  == '6':
             p = Pool(processes=5)
-            result_list = []
             host_info=ip_list
-            local_file='/tmp/172.16.110.251.log'
-            remote_file='/root/test.file'
-            for h in  host_info:
-                status=commands.getstatusoutput('ping -c 1 -w 1 %s'%h[0])
-                if status[0] is 0:
-                  p.apply(get_file, [h,local_file,remote_file])
-                  print '已经传输',h
-                  print local_file
-                  print remote_file
-                else:
-                   print "%s 无法连接,跳过该服务器"%h[0]
-                   continue
+            while True:
+                remote_file=raw_input('请输入远程服务器文件名(如:/tmp/test.file):').strip()
+                #if os.path.exists('%s'%local_file): #判断用户目录是否存在
+                #    break
+                #else:
+                #    print '%s不存在'%local_file
+                #    continue
+                if remote_file == 'quit':break
+                for h in  host_info:
+                    status=commands.getstatusoutput('ping -c 1 -w 1 %s'%h[0])
+                    if status[0] is 0:
+                      p.apply(get_file, [h,remote_file])
+                    else:
+                       print "%s 无法连接,跳过该服务器"%h[0]
+                       continue
             p.close()
             p.join()
         else:
