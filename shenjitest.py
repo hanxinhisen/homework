@@ -13,7 +13,7 @@ from multiprocessing import Process, Pool
 import paramiko
 import sys,os
 import paramiko
-host='172.16.110.1'
+host='172.16.112.23'
 port=22
 user='root'
 password='123456'
@@ -22,7 +22,11 @@ s = paramiko.SSHClient()	#绑定实例
 s.load_system_host_keys()	#加载本机HOST主机文件
 s.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 time1=time.time()
-s.connect(host,port,user,password,timeout=5)   #连接远程主机
+try:
+  s.connect(host,port,user,password,timeout=1)   #连接远程主机
+except Exception:
+     print 'laskd'
+     exit()
 time2=time.time()
 print '++++++++++++++++++++++++'
 print time2-time1

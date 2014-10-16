@@ -18,20 +18,17 @@
 # along with Paramiko; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 
-
-import base64
 from binascii import hexlify
 import getpass
 import os
-import select
+
 import socket
 import sys
-import threading
-import time
+
 import traceback
 
 import paramiko
-import interactive
+import virtual_ssh
 
 
 def agent_auth(transport, username):
@@ -68,10 +65,13 @@ loguser=sys.argv[5]
 # now connect
 try:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(2)
     sock.connect((hostname, int(port)))
 except Exception, e:
+    print '------------------------------'
     print '*** Connect failed: ' + str(e)
-    traceback.print_exc()
+    print '------------------------------'
+    #traceback.print_exc()
     sys.exit(1)
 
 try:
@@ -104,11 +104,11 @@ try:
         print '*** Host key OK.'
 
     # get username
-    if username == '':
-        default_username = getpass.getuser()
-        username = raw_input('Username [%s]: ' % default_username)
-        if len(username) == 0:
-            username = default_username
+    #if username == '':
+    #    default_username = getpass.getuser()
+    #    username = raw_input('Username [%s]: ' % default_username)
+    #    if len(username) == 0:
+    #        username = default_username
 
     agent_auth(t, username)
     if not t.is_authenticated():
@@ -123,7 +123,7 @@ try:
     chan.invoke_shell()
     print '*** Here we go!'
     print
-    interactive.interactive_shell(chan,'%s'%loguser,'%s'%hostname)  #root为登陆堡垒系统的用户名，'test'为堡垒系统IP
+    virtual_ssh.interactive_shell(chan,'%s'%loguser,'%s'%hostname)  #root为登陆堡垒系统的用户名，'test'为堡垒系统IP
     chan.close()
     t.close()
 
